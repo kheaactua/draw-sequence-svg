@@ -1,0 +1,37 @@
+{
+   "systems": [
+		{
+			"id": "App2A",
+			"name": "App2A",
+			"ip": "10.12.10.75"
+		},
+		{
+			"id": "Admin2A",
+			"name": "Admin2A",
+			"ip": "10.12.10.68"
+		},
+		{
+			"id": "MIS2A",
+			"name": "MIS2A",
+			"ip": "10.12.10.84"
+		}
+	],
+	"eventTypes": [
+		{
+			"name": "StartCall",
+			"color": "#FF0000"
+		},
+		{
+			"name": "EndMedia",
+			"color": "#FFFF00"
+		},
+		{
+			"name": "EndCall",
+			"color": "#AA00AA"
+		},
+		{
+			"name": "CDRtype1",
+			"color": "#FF2200"
+		}
+	]
+}
