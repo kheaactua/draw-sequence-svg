@@ -287,7 +287,8 @@ def read_template(filename):
 
 def filter_systems(systems, event_data):
     """ Remove systems that aren't involved in any events """
-    for s in systems:
+    system_copy = systems.copy()
+    for s in system_copy:
         found = False
         for e in event_data:
             if s == e.src or s == e.dst:
@@ -295,4 +296,3 @@ def filter_systems(systems, event_data):
                 break
         if not found:
             systems.remove(s)
-
