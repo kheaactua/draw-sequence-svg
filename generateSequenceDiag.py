@@ -29,10 +29,10 @@ class System(SvgObject):
         self.name = name
         self.ip   = ip
 
-        self.display_options.width  = 50
-        self.display_options.height = 20
-        self.display_options.bgcolor = '#FF0000'
-        self.display_options.fontsize = 12
+        self.display_options.width  = 40
+        self.display_options.height = 15
+        self.display_options.bgcolor = '#000000'
+        self.display_options.fontsize = 4.2
         self.display_options.fontcolor = '#FF0000'
 
     def __str__(self):
@@ -53,28 +53,29 @@ class System(SvgObject):
          height="{height}"
          x="{x_r}"
          y="{y_r}"
-         style="fill:#{bgcolor};stroke-width:0.26458332" />
+         style="fill:{bgcolor};stroke-width:0.26px" />
       <path
-         style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         d="M {x_l},{y_l} V 186.63095"
-         id="System-{system}-Lifeline"
+         style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
+         d="M {x_l},{y_l} V {page_height}"
+         id="system-{system}-lifeline"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:{fontsize}pt;line-height:125%;font-family:Sans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:{fontcolor};fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:125%;font-family:Sans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:{fontcolor};fill-opacity:1;stroke:none;stroke-width:0.25px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          x="{x_t}"
          y="{y_t}"
          id="system-{system}-label"><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
-           style="text-align:center;text-anchor:middle;stroke-width:0.26458332px"
+           style="font-size:{fontsize}px;text-align:center;text-anchor:middle;fill:{fontcolor};stroke-width:0.2px"
+           style="text-align:center;text-anchor:middle;stroke-width:0.26px"
            id="system-{system}-label-name">{system}</tspan><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
-           style="text-align:center;text-anchor:middle;stroke-width:0.26458332px"
+           style="text-align:center;text-anchor:middle;stroke-width:0.26px"
            id="system-{system}-label-ip">{ip}</tspan></text>
     </g>'''.format(
             system=self.id,
@@ -84,10 +85,11 @@ class System(SvgObject):
             bgcolor=self.display_options.bgcolor,
             fontsize=self.display_options.fontsize,
             fontcolor=self.display_options.fontcolor,
-            x_g=14, y_g=0,
-            x_r=30, y_r=10,
-            x_l=33, y_l=50,
-            x_t=33, y_t=50,
+            x_g=self.display_options.x, y_g=self.display_options.y,
+            x_r=0, y_r=0,
+            x_t=self.display_options.width/2, y_t=self.display_options.height/2,
+            x_l=self.display_options.width/2, y_l=self.display_options.height,
+            page_height=top-self.display_options.height
         )
 
         return svg
@@ -113,15 +115,15 @@ class Event(SvgObject):
 
         svg = '''<text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.26"
        x="{x}"
        y="{y}"
-       id="timepoint-1"><tspan
+       id="{id}-text"><tspan
          sodipodi:role="line"
-         id="{id}"
+         id="{id}-text-tspan"
          x="{x}"
          y="{y}"
-         style="stroke-width:0.26458332;font-size:{fontsize}px">{t}</tspan></text>'''.format(
+         style="stroke-width:0.26;font-size:{fontsize}px">{t}</tspan></text>'''.format(
             t=self.time,
             x=self.display_options.x, y=self.display_options.y,
             id='time-label-%s'%re.sub('\W', '', str(self.time)),
@@ -152,18 +154,20 @@ class Diagram(object):
         # First we have to position everything
         svg_systems = ''
         for i, s in enumerate(self.systems):
-            s.display_options.x = 200*i # magic variable
+            s.display_options.x = 60*i + 20 # magic variable
             s.display_options.y = 0
             svg_systems = svg_systems + s.to_svg(top=self.doc_info['height'])
 
         time_labels = ''
         for i, e in enumerate(self.events):
             e.display_options.x = 0
-            e.display_options.y = 20 * i # magic variable
+            e.display_options.y = int(float(e.time - self.events[0].time) * 5) # magic values
             time_labels = time_labels + e.to_svg()
 
-        outp = re.sub('{{systems}}',     svg_systems, self.template)
-        outp = re.sub('{{time-labels}}', time_labels, outp)
+        outp = re.sub('{{systems}}',      svg_systems, self.template)
+        outp = re.sub('{{time-left}}',    str(5), outp)
+        outp = re.sub('{{time-top}}',     str(self.systems[0].display_options.height + 10), outp)
+        outp = re.sub('{{time-labels}}',  time_labels, outp)
 
         return outp
 
@@ -213,11 +217,11 @@ def read_template(filename):
     for m in props:
         if 'width' == m[0]:
             units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['width'] = units.group('val')
+            info['width'] = float(units.group('val'))
             info['unit']  = units.group('unit')
         elif 'height' == m[0]:
             units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['height'] = units.group('val')
+            info['height'] = float(units.group('val'))
 
     return contents, info
 

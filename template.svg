@@ -1,56 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
-   version="1.1"
    id="svg8"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
-   sodipodi:docname="template.svg">
+   version="1.1"
+   viewBox="0 0 210 297"
+   height="297mm"
+   width="210mm">
   <defs
      id="defs2">
     <marker
-       inkscape:stockid="TriangleOutL"
-       orient="auto"
-       refY="0.0"
-       refX="0.0"
-       id="TriangleOutL"
        style="overflow:visible"
-       inkscape:isstock="true">
+       id="TriangleOutL"
+       refX="0.0"
+       refY="0.0"
+       orient="auto">
       <path
-         id="path4695"
-         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         transform="scale(0.8)"
          style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
-         transform="scale(0.8)" />
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         id="path4695" />
     </marker>
   </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="-15.932386"
-     inkscape:cy="578.8255"
-     inkscape:document-units="mm"
-     inkscape:current-layer="layer-timeline"
-     showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1017"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -64,41 +38,33 @@
     </rdf:RDF>
   </metadata>
   <g
-     inkscape:groupmode="layer"
      id="layer-timeline"
-     inkscape:label="Timeline">
+     transform="translate({{time-left}},{{time-top}})">
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.29995924px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 10.866817,63.032737 H 172.64062"
        id="timeline1"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
+       d="M 10.866817,63.032737 H 172.64062"
+       style="fill:none;stroke:#000000;stroke-width:0.29995924px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.29995924px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 10.866816,94.026786 H 172.64063"
        id="timeline2"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
+       d="M 10.866816,94.026786 H 172.64063"
+       style="fill:none;stroke:#000000;stroke-width:0.29995924px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
     <g
-       id="Event1-EventType"
-       transform="translate(-21.166667,-45.735119)">
+       transform="translate(-21.166667,-45.735119)"
+       id="Event1-EventType">
       <path
-         sodipodi:nodetypes="cc"
-         inkscape:connector-curvature="0"
-         id="Event1-Arrow"
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL)"
          d="M 65.011905,125.02083 H 130.40178"
-         style="fill:none;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutL)" />
+         id="Event1-Arrow" />
       <text
-         id="Event1-Label"
-         y="121.99702"
-         x="82.020836"
+         xml:space="preserve"
          style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-         xml:space="preserve"><tspan
-           style="stroke-width:0.26458332"
-           y="121.99702"
-           x="82.020836"
+         x="82.020836"
+         y="121.99702"
+         id="Event1-Label"><tspan
            id="tspan4867"
-           sodipodi:role="line">Event1</tspan></text>
+           x="82.020836"
+           y="121.99702"
+           style="stroke-width:0.26458332">Event1</tspan></text>
     </g>
     {{time-labels}}
   </g>
