@@ -257,6 +257,8 @@ def read_data(filename, systems, event_styles):
         for row in reader:
             if len(row) < 4:
                 continue
+            if re.match('^\s*#', row[0]):
+                continue
             src = next(s for s in systems if s.id == row[1])
             dst = next(s for s in systems if s.id == row[2])
             sty = event_styles[row[3]] if row[3] in event_styles else None
