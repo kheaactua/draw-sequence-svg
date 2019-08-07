@@ -18,19 +18,19 @@
 	],
 	"eventTypes": [
 		{
-			"name": "StartCall",
+			"eventType": "StartCall",
 			"color": "#FF0000"
 		},
 		{
-			"name": "EndMedia",
+			"eventType": "EndMedia",
 			"color": "#FFFF00"
 		},
 		{
-			"name": "EndCall",
+			"eventType": "EndCall",
 			"color": "#AA00AA"
 		},
 		{
-			"name": "CDRtype1",
+			"eventType": "CDRtype1",
 			"color": "#FF2200"
 		}
 	]

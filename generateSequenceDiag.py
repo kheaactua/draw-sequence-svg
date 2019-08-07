@@ -22,6 +22,10 @@ class SvgObject(object):
     def __init__(self):
         self.display_options = DisplayOptions(0,0)
 
+    def compile(self):
+        """ Method to process some values after getting inputs but before exporting SVG """
+        pass
+
 class System(SvgObject):
     def __init__(self, id, name, ip):
         super().__init__()
@@ -33,7 +37,11 @@ class System(SvgObject):
         self.display_options.height = 15
         self.display_options.bgcolor = '#000000'
         self.display_options.fontsize = 4.2
-        self.display_options.fontcolor = '#FF0000'
+        self.display_options.fontcolor = '#ff0000'
+        self.display_options.lifeline_length = 0
+
+        # Position that events can use to hook on to
+        self.display_options.abs_center = 0
 
     def __str__(self):
         return '%s [%s]'%(self.name, self.ip)
@@ -41,7 +49,13 @@ class System(SvgObject):
     def __repr__(self):
         return '%s'%self.id
 
-    def to_svg(self, top):
+    def compile(self):
+        super().compile()
+
+        self.display_options.abs_center = self.display_options.x + (self.display_options.width/2.0)
+        self.display_options.lifeline_length = self.display_options.page_height - self.display_options.height
+
+    def to_svg(self):
         """ Serialize to an XML block """
 
         svg = '''<g
@@ -56,7 +70,7 @@ class System(SvgObject):
          style="fill:{bgcolor};stroke-width:0.26px" />
       <path
          style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
-         d="M {x_l},{y_l} V {page_height}"
+         d="M {x_l},{y_l} V {lifeline_length}"
          id="system-{system}-lifeline"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
@@ -89,63 +103,103 @@ class System(SvgObject):
             x_r=0, y_r=0,
             x_t=self.display_options.width/2, y_t=self.display_options.height/2,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
-            page_height=top-self.display_options.height
+            lifeline_length=self.display_options.lifeline_length
         )
 
         return svg
 
 class Event(SvgObject):
-    def __init__(self, time, src, dst, eventType):
+    def __init__(self, time, src, dst, event_type, event_style):
         super().__init__()
         self.time      = float(time)
         self.src       = src
         self.dst       = dst
-        self.eventType = eventType
+        self.event_type = event_type
+        self.event_style = event_style
 
         self.display_options.fontsize = 3.6
 
     def __str__(self):
-        return '%2.2f: %s->%s %s'%(self.time, self.src, self.dst, self.eventType)
+        return '%2.2f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
 
     def __repr__(self):
-        return '%2.3f: %s->%s %s'%(self.time, self.src, self.dst, self.eventType)
+        return '%2.3f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
 
     def to_svg(self):
         """ Serialize to an XML block """
 
-        svg = '''<text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.26"
-       x="{x}"
-       y="{y}"
-       id="{id}-text"><tspan
-         sodipodi:role="line"
-         id="{id}-text-tspan"
-         x="{x}"
-         y="{y}"
-         style="stroke-width:0.26;font-size:{fontsize}px">{t}</tspan></text>'''.format(
+        #a_len = self.dst.display_options.abs_center - self.src.display_options.abs_center
+        a_len = 60
+        if self.dst.display_options.abs_center < self.src.display_options.abs_center:
+            a_len = -1 * a_len
+
+        a_start = self.src.display_options.abs_center - self.display_options.x
+        a_center = (a_len/2.0) + a_start
+
+        svg = '''<g
+     id="{id}-event-group"
+     transform="translate({x_g},{y_g})">
+    <g
+       id="{id}-event">
+      <path
+         inkscape:connector-curvature="0"
+         id="{id}-arrow"
+         d="M {x_a},{y_a} h {a_len}"
+         style="fill:none;stroke:{eventcolor};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
+      <text
+         id="{id}-label"
+         x="{x_l}"
+         y="{y_l}"
+         style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.25"
+         xml:space="preserve"><tspan
+           style="font-size:{fontsize}px;stroke-width:0.25"
+           x="{x_l}"
+           y="{y_l}"
+           id="{id}-label-tspan">{name}</tspan></text>
+    </g>
+    <text
+       id="{id}-time-label-text"
+       x="{x_t}"
+       y="{y_t}"
+       style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.25"
+       xml:space="preserve"><tspan
+         style="font-size:{fontsize}px;stroke-width:0.25"
+         x="{x_t}"
+         y="{y_t}"
+         id="{id}-time-label-tspan"
+         sodipodi:role="line">{t}</tspan></text>
+  </g>'''.format(
             t=self.time,
-            x=self.display_options.x, y=self.display_options.y,
-            id='time-label-%s'%re.sub('\W', '', str(self.time)),
+            x_g=self.display_options.x, y_g=self.display_options.y,
+            x_a=a_start, y_a=0, a_len=a_len,
+            x_l=a_center, y_l=0,
+            x_t=0, y_t=0,
+            id='time-%s'%re.sub('\W', '', str(self.time)),
             fontsize=self.display_options.fontsize,
-            color=self.display_options.color
+            color=self.display_options.color,
+            eventcolor=self.event_style.color,
+            name=self.event_type,
         )
 
         return svg
 
 class EventStyle(object):
-    def __init__(self, eventType, color):
-        self.eventType = eventType
-        self.color     = color
+    def __init__(self, event_type, color):
+        self.event_type = event_type
+        self.color      = color
 
+    def __repr__(self):
+        return '%s(%s)'%(self.event_type, self.color)
+
+# TODO get rid of event_style?
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
-    def __init__(self, template, systems, events, event_style, doc_info):
+    def __init__(self, template, systems, events, event_styles, doc_info):
         self.template    = template
         self.systems     = systems
         self.events      = events
-        self.event_style = event_style
+        # self.event_style = event_style
         self.doc_info    = doc_info
 
     def generate(self):
@@ -156,18 +210,22 @@ class Diagram(object):
         for i, s in enumerate(self.systems):
             s.display_options.x = 60*i + 20 # magic variable
             s.display_options.y = 0
-            svg_systems = svg_systems + s.to_svg(top=self.doc_info['height'])
+            s.display_options.page_height = self.doc_info['height']
+            s.compile()
+            svg_systems = svg_systems + s.to_svg()
 
-        time_labels = ''
+        events_svg = ''
         for i, e in enumerate(self.events):
             e.display_options.x = 0
             e.display_options.y = int(float(e.time - self.events[0].time) * 5) # magic values
-            time_labels = time_labels + e.to_svg()
+            e.compile()
+            events_svg = events_svg + e.to_svg()
+            if i > 3: break
 
         outp = re.sub('{{systems}}',      svg_systems, self.template)
         outp = re.sub('{{time-left}}',    str(5), outp)
         outp = re.sub('{{time-top}}',     str(self.systems[0].display_options.height + 10), outp)
-        outp = re.sub('{{time-labels}}',  time_labels, outp)
+        outp = re.sub('{{events}}',  events_svg, outp)
 
         return outp
 
@@ -182,11 +240,11 @@ def read_config(filename):
 
     event_style = {}
     for e in data['eventTypes']:
-        event_style[e['name']] = EventStyle(e['name'], e['color'])
+        event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
 
     return systems, event_style
 
-def read_data(filename, systems):
+def read_data(filename, systems, event_styles):
     csv.register_dialect('eventStyle', delimiter = '\t', skipinitialspace=True)
 
     data = []
@@ -196,19 +254,14 @@ def read_data(filename, systems):
             # print(row)
             src = next(s for s in systems if s.id == row[1])
             dst = next(s for s in systems if s.id == row[2])
-            data.append(Event(time=row[0], src=src, dst=dst, eventType=row[3]))
+            sty = event_styles[row[3]] if row[3] in event_styles else None
+            data.append(Event(time=row[0], src=src, dst=dst, event_type=row[3], event_style=sty))
 
     return data
 
 def read_template(filename):
     """ Import our template, and read some properties from it """
     with open(filename, 'r') as f: contents=f.read()
-
-    # # Determine some properties
-    # props = re.findall(r'inkscape:(?P<param>[\w-]+)=\"(?P<value>.*?)\"', contents, re.MULTILINE)
-    # info = {}
-    # for m in props:
-    #     info[m[0]] = m[1]
 
     # Determine some properties, get the svg tag
     tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
@@ -228,11 +281,11 @@ def read_template(filename):
 def main(config_filename, data_filename, output_filename):
     """ Loads all the data and prepares the SVG """
 
-    systems, event_style = read_config(config_filename)
-    event_data = read_data(data_filename, systems)
+    systems, event_styles = read_config(config_filename)
+    event_data = read_data(data_filename, systems=systems, event_styles=event_styles)
     template, info = read_template('template.svg')
 
-    diag = Diagram(template=template, systems=systems, events=event_data, event_style=event_style, doc_info=info)
+    diag = Diagram(template=template, systems=systems, events=event_data, event_styles=event_styles, doc_info=info)
     contents = diag.generate()
 
     with open(output_filename, 'w') as f: f.write(contents)
