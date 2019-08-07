@@ -32,13 +32,16 @@ def main():
     outp = outp + '   (\n'
     for s1 in systems:
         for s2 in systems:
+            if s1 == s2:
+                continue
+
             outp = outp + '      '
             if is_first:
                 outp = outp + '   '
                 is_first = False
             else:
                 outp = outp + 'or '
-            outp = outp + '(ip.src=={s1} and ip.dst=={s2})\n      or (ip.src=={s2} and ip.dst=={s1})\n'.format(s1=s1.ip, s2=s2.ip)
+            outp = outp + '(ip.src=={s1} and ip.dst=={s2})\n'.format(s1=s1.ip, s2=s2.ip)
 
     outp = outp + '   )\n'
     outp = outp + '    and (http contains "StartCall" or http ~ "<eventType>.*endMedia.*</eventType>" or http ~ "<eventType>.*CDRType1.*</eventType>" or http ~ "<eventType>.*EndCall.*</eventType>")\n'
