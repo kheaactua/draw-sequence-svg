@@ -44,7 +44,7 @@
      inkscape:cx="-15.932386"
      inkscape:cy="578.8255"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer-timeline"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="1017"
@@ -65,7 +65,7 @@
   </metadata>
   <g
      inkscape:groupmode="layer"
-     id="layer2"
+     id="layer-timeline"
      inkscape:label="Timeline">
     <path
        style="fill:none;stroke:#000000;stroke-width:0.29995924px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -100,23 +100,13 @@
            id="tspan4867"
            sodipodi:role="line">Event1</tspan></text>
     </g>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="-20.788691"
-       y="94.026787"
-       id="timepoint-1"><tspan
-         sodipodi:role="line"
-         id="tspan4883"
-         x="-20.788691"
-         y="94.026787"
-         style="stroke-width:0.26458332">78.21</tspan></text>
+    {{time-labels}}
   </g>
-  <g inkscape:label="Systems" inkscape:groupmode="layer" id="SystemsLayer">
+  <g inkscape:label="Systems" inkscape:groupmode="layer" id="layer-systems">
      {{systems}}
   </g>
   <g
      inkscape:groupmode="layer"
-     id="layer3"
+     id="events-layer"
      inkscape:label="Events" />
 </svg>
