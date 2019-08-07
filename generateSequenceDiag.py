@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import print_function
 
@@ -70,7 +70,7 @@ class System(SvgObject):
          style="fill:{bgcolor};stroke-width:0.26px" />
       <path
          style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
-         d="M {x_l},{y_l} V {lifeline_length}"
+         d="m {x_l},{y_l} v {lifeline_length}"
          id="system-{system}-lifeline"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
@@ -85,14 +85,15 @@ class System(SvgObject):
            y="{y_t}"
            style="font-size:{fontsize}px;text-align:center;text-anchor:middle;fill:{fontcolor};stroke-width:0.2px"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="system-{system}-label-name">{system}</tspan><tspan
+           id="system-{system}-label-name">{system_name}</tspan><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
            id="system-{system}-label-ip">{ip}</tspan></text>
     </g>'''.format(
-            system=self.id,
+            system=self.id.lower(),
+            system_name=self.name,
             ip=self.ip,
             width=self.display_options.width,
             height=self.display_options.height,
@@ -128,23 +129,26 @@ class Event(SvgObject):
     def to_svg(self):
         """ Serialize to an XML block """
 
-        #a_len = self.dst.display_options.abs_center - self.src.display_options.abs_center
-        a_len = 60
+        a_len = self.dst.display_options.abs_center - self.src.display_options.abs_center
         if self.dst.display_options.abs_center < self.src.display_options.abs_center:
             a_len = -1 * a_len
 
-        a_start = self.src.display_options.abs_center - self.display_options.x
+        # Abs
+        a_start = self.src.display_options.abs_center
+
+        # Relative
         a_center = (a_len/2.0) + a_start
 
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
     <g
-       id="{id}-event">
+       id="{id}-event"
+       transform="translate({x_e},{y_e})">
       <path
          inkscape:connector-curvature="0"
          id="{id}-arrow"
-         d="M {x_a},{y_a} h {a_len}"
+         d="m {x_a},{y_a} h {a_len}"
          style="fill:none;stroke:{eventcolor};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
       <text
          id="{id}-label"
@@ -171,8 +175,9 @@ class Event(SvgObject):
   </g>'''.format(
             t=self.time,
             x_g=self.display_options.x, y_g=self.display_options.y,
-            x_a=a_start, y_a=0, a_len=a_len,
-            x_l=a_center, y_l=0,
+            x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
+            x_a=0, y_a=0, a_len=a_len,
+            x_l=a_len/2.0, y_l=0,
             x_t=0, y_t=0,
             id='time-%s'%re.sub('\W', '', str(self.time)),
             fontsize=self.display_options.fontsize,
@@ -216,14 +221,14 @@ class Diagram(object):
 
         events_svg = ''
         for i, e in enumerate(self.events):
-            e.display_options.x = 0
+            # e.display_options.marginLeft = 5
+            e.display_options.x = 5
             e.display_options.y = int(float(e.time - self.events[0].time) * 5) # magic values
             e.compile()
             events_svg = events_svg + e.to_svg()
-            if i > 3: break
 
         outp = re.sub('{{systems}}',      svg_systems, self.template)
-        outp = re.sub('{{time-left}}',    str(5), outp)
+        outp = re.sub('{{time-left}}',    str(0), outp)
         outp = re.sub('{{time-top}}',     str(self.systems[0].display_options.height + 10), outp)
         outp = re.sub('{{events}}',  events_svg, outp)
 
@@ -251,7 +256,8 @@ def read_data(filename, systems, event_styles):
     with open(filename, 'r') as csv_file:
         reader = csv.reader(csv_file, dialect='eventStyle')
         for row in reader:
-            # print(row)
+            if len(row) < 4:
+                continue
             src = next(s for s in systems if s.id == row[1])
             dst = next(s for s in systems if s.id == row[2])
             sty = event_styles[row[3]] if row[3] in event_styles else None
