@@ -8,6 +8,7 @@ import os
 import csv
 import json
 import re
+import random
 
 class DisplayOptions(object):
     def __init__(self, x,y):
@@ -27,17 +28,18 @@ class SvgObject(object):
         pass
 
 class System(SvgObject):
-    def __init__(self, id, name, ip):
+    def __init__(self, id, name, ip, sort_nudge):
         super().__init__()
         self.id   = id
         self.name = name
         self.ip   = ip
+        self.sort_nudge = sort_nudge
 
         self.display_options.width  = 40
         self.display_options.height = 15
-        self.display_options.bgcolor = '#000000'
+        self.display_options.bgcolor = '#c47e6c'
         self.display_options.fontsize = 4.2
-        self.display_options.fontcolor = '#ff0000'
+        self.display_options.fontcolor = '#000000'
         self.display_options.lifeline_length = 0
 
         # Position that events can use to hook on to
@@ -104,7 +106,6 @@ class System(SvgObject):
             x_r=0, y_r=0,
             x_t=self.display_options.width/2, y_t=self.display_options.height/2,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
-            # x_l=self.display_options.width/2, y_l=0,
             lifeline_length=self.display_options.lifeline_length
         )
 
@@ -113,13 +114,14 @@ class System(SvgObject):
 class Event(SvgObject):
     def __init__(self, time, src, dst, event_type, event_style):
         super().__init__()
-        self.time      = float(time)
-        self.src       = src
-        self.dst       = dst
-        self.event_type = event_type
+        self.time        = float(time)
+        self.time_label  = float(time)
+        self.src         = src
+        self.dst         = dst
+        self.event_type  = event_type
         self.event_style = event_style
 
-        self.display_options.fontsize = 3.6
+        self.display_options.fontsize = 3.3
 
     def __str__(self):
         return '%2.2f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
@@ -135,11 +137,10 @@ class Event(SvgObject):
             a_len = -1 * a_len
 
         # Abs
-        # a_start = self.src.display_options.abs_center - self.display_options.x
         a_start = self.src.display_options.abs_center
 
-        # Relative
-        a_center = (a_len/2.0) + a_start
+        # Position the label randomely a little
+        label_pos = a_len/2.0 + random.randint(int(-1*a_len/4), int(a_len/4))
 
         svg = '''<g
      id="{id}-event-group"
@@ -175,15 +176,15 @@ class Event(SvgObject):
          id="{id}-time-label-tspan"
          sodipodi:role="line">{t}</tspan></text>
   </g>'''.format(
-            t=self.time,
+            t=self.time_label,
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
-            x_l=a_len/2.0, y_l=0,
+            x_l=label_pos, y_l=0,
             x_t=0, y_t=0,
             id='time-%s'%re.sub('\W', '', str(self.time)),
             fontsize=self.display_options.fontsize,
-            color=self.display_options.color,
+            color=self.event_style.color,
             eventcolor=self.event_style.color,
             name=self.event_type,
         )
@@ -201,11 +202,12 @@ class EventStyle(object):
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
-    def __init__(self, template, systems, events, event_styles, doc_info):
+    def __init__(self, template, systems, events, event_styles, doc_info, settings):
         self.template    = template
         self.systems     = systems
         self.events      = events
         self.doc_info    = doc_info
+        self.settings    = settings
 
     def generate(self):
         """ Generate the SVG """
@@ -213,7 +215,7 @@ class Diagram(object):
         # First we have to position everything
         svg_systems = ''
         for i, s in enumerate(self.systems):
-            s.display_options.x = 60*i + 20 # magic variable
+            s.display_options.x = self.settings['systemSpacing']*i + self.settings['timeMarginLeft']
             s.display_options.y = 0
             s.display_options.page_height = self.doc_info['height']
             s.compile()
@@ -221,8 +223,8 @@ class Diagram(object):
 
         events_svg = ''
         for i, e in enumerate(self.events):
-            e.display_options.x = 5
-            e.display_options.y = int(float(e.time - self.events[0].time) * 5) # magic values
+            e.display_options.x = self.settings['timeMarginLeft']
+            e.display_options.y = int(float(e.time - self.events[0].time) * self.settings['timeSpacing'])
             e.compile()
             events_svg = events_svg + e.to_svg()
 
@@ -240,15 +242,18 @@ def read_config(filename):
     # Maybe write something later dst automatically load system objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
     systems = []
     for s in data['systems']:
-        systems.append(System(s['id'], s['name'], s['ip']))
+        systems.append(System(s['id'], s['name'], s['ip'], s['sort_nudge']))
+
+    # Sort the list
+    systems.sort(key=lambda x: x.sort_nudge)
 
     event_style = {}
     for e in data['eventTypes']:
         event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
 
-    return systems, event_style
+    return systems, event_style, data["settings"]
 
-def read_data(filename, systems, event_styles):
+def read_data(filename, systems, event_styles, settings):
     csv.register_dialect('eventStyle', delimiter = '\t', skipinitialspace=True)
 
     data = []
@@ -263,6 +268,14 @@ def read_data(filename, systems, event_styles):
             dst = next(s for s in systems if s.id == row[2])
             sty = event_styles[row[3]] if row[3] in event_styles else None
             data.append(Event(time=row[0], src=src, dst=dst, event_type=row[3], event_style=sty))
+
+    # Make sure there are no huge gaps in the times.  If there are, reduce them
+    for i,e in enumerate(data):
+        if i==0: continue
+        dt = e.time - data[i-1].time
+        if dt > settings['maxTimeGap']:
+            for en in data[i:]:
+                en.time = en.time-(dt-settings['maxTimeGap'])
 
     return data
 

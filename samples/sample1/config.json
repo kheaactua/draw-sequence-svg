@@ -3,60 +3,75 @@
 		{
 			"id": "App2A",
 			"name": "App2A",
-			"ip": "10.12.10.75"
+			"ip": "10.12.10.75",
+			"sort_nudge": 1
 		},
 		{
 			"id": "Admin2A",
 			"name": "Admin2A",
-			"ip": "10.12.10.68"
+			"ip": "10.12.10.68",
+			"sort_nudge": 2
 		},
 		{
 			"id": "MIS2A",
 			"name": "MIS2A",
-			"ip": "10.12.10.84"
+			"ip": "10.12.10.84",
+			"sort_nudge": 10
 		},
 		{
 			"id": "APP1A",
 			"name": "APP1A",
-			"ip": "10.7.156.75"
+			"ip": "10.7.156.75",
+			"sort_nudge": 1
 		},
 		{
 			"id": "ELM1A",
 			"name": "ELM1A",
-			"ip": "10.7.156.68"
+			"ip": "10.7.156.68",
+			"sort_nudge": 3
 		},
 		{
 			"id": "REC1A",
 			"name": "REC1A",
-			"ip": "10.7.156.95"
+			"ip": "10.7.156.95",
+			"sort_nudge": 11
 		},
 		{
 			"id": "MIS1A",
 			"name": "MIS1A",
-			"ip": "10.7.156.92"
+			"ip": "10.7.156.92",
+			"sort_nudge": 10
 		},
 		{
 			"id": "GL1A",
 			"name": "GL1A",
-			"ip": "10.7.156.86"
+			"ip": "10.7.156.86",
+			"sort_nudge": 6
 		}
 	],
 	"eventTypes": [
 		{
 			"eventType": "StartCall",
-			"color": "#FF0000"
+			"color": "#506B83"
 		},
 		{
 			"eventType": "EndMedia",
-			"color": "#FFFF00"
+			"color": "#DDB83B"
 		},
 		{
 			"eventType": "EndCall",
-			"color": "#AA00AA"
+			"color": "#DC963C"
 		},
 		{
 			"eventType": "CDRtype1",
-			"color": "#FF2200"
+			"color": "#DB7E45"
 		}
-	]
+	],
+	"settings": {
+		"systemBgColor": "#c47e6c",
+		"systemSpacing": 60,
+		"timeMarginLeft": 20,
+		"timeSpacing": 15,
+		"maxTimeGap": 5
+	}
 }
