@@ -104,6 +104,7 @@ class System(SvgObject):
             x_r=0, y_r=0,
             x_t=self.display_options.width/2, y_t=self.display_options.height/2,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
+            # x_l=self.display_options.width/2, y_l=0,
             lifeline_length=self.display_options.lifeline_length
         )
 
@@ -134,6 +135,7 @@ class Event(SvgObject):
             a_len = -1 * a_len
 
         # Abs
+        # a_start = self.src.display_options.abs_center - self.display_options.x
         a_start = self.src.display_options.abs_center
 
         # Relative
@@ -196,7 +198,6 @@ class EventStyle(object):
     def __repr__(self):
         return '%s(%s)'%(self.event_type, self.color)
 
-# TODO get rid of event_style?
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
@@ -204,7 +205,6 @@ class Diagram(object):
         self.template    = template
         self.systems     = systems
         self.events      = events
-        # self.event_style = event_style
         self.doc_info    = doc_info
 
     def generate(self):
@@ -221,7 +221,6 @@ class Diagram(object):
 
         events_svg = ''
         for i, e in enumerate(self.events):
-            # e.display_options.marginLeft = 5
             e.display_options.x = 5
             e.display_options.y = int(float(e.time - self.events[0].time) * 5) # magic values
             e.compile()
@@ -284,31 +283,14 @@ def read_template(filename):
 
     return contents, info
 
-def main(config_filename, data_filename, output_filename):
-    """ Loads all the data and prepares the SVG """
+def filter_systems(systems, event_data):
+    """ Remove systems that aren't involved in any events """
+    for s in systems:
+        found = False
+        for e in event_data:
+            if s == e.src or s == e.dst:
+                found = True
+                break
+        if not found:
+            systems.remove(s)
 
-    systems, event_styles = read_config(config_filename)
-    event_data = read_data(data_filename, systems=systems, event_styles=event_styles)
-    template, info = read_template('template.svg')
-
-    diag = Diagram(template=template, systems=systems, events=event_data, event_styles=event_styles, doc_info=info)
-    contents = diag.generate()
-
-    with open(output_filename, 'w') as f: f.write(contents)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate an SVG of a sequence diagram based on input data')
-    parser.add_argument('-c', '--config', dest='config', metavar='FILE', required=True, action='store', type=str, help='JSON Config file')
-    parser.add_argument('-i', '--input', dest='data', action='store', required=True, type=str, help='CSV file listing the events')
-    parser.add_argument('-o', '--output', dest='output', action='store', required=True, type=str, help='Output SVG name')
-
-    args = parser.parse_args()
-
-    if not os.path.exists(args.config):
-        print('Cannot find config file %s'%args.config, file=sys.stderr)
-
-    if not os.path.exists(args.data):
-        print('Cannot find data file %s'%args.data, file=sys.stderr)
-
-    main(config_filename=args.config, data_filename=args.data, output_filename=args.output)

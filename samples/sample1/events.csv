@@ -1,14 +1,3 @@
-# Taken from Z:\JPDugal\LoggingService_processing on July 31 2019
-# Display filter used:
-# (
-#    (
-# 		   (ip.src==10.12.10.75 and ip.dst==10.12.10.68)
-# 		or (ip.src==10.12.10.75 and ip.dst==10.12.10.84)
-# 		or (ip.src==10.12.10.68 and ip.dst==10.12.10.84)
-# 		or (ip.src==10.12.10.84 and ip.dst==10.12.10.75)
-# 	) and (http contains "StartCall" or http ~ "<eventType>.*endMedia.*</eventType>" or http ~ "<eventType>.*CDRType1.*</eventType>" or http ~ "<eventType>.*EndCall.*</eventType>")
-# )
-
 36.7	App2A	Admin2A	StartCall
 37.4	Admin2A	MIS2A	StartCall
 43.4	App2A	Admin2A	EndMedia
