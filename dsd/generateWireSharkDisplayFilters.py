@@ -6,30 +6,51 @@ import argparse
 import dsd.loaddata as ld
 from svgobjs import *
 
-def generateDisplayFilter(hosts, line_breaks=True):
+def generateDisplayFilter(hosts, events, line_breaks=True):
     is_first = True
-    outp = '(\n'
-    outp = outp + '   (\n'
-    for s1 in hosts:
-        for s2 in hosts:
-            if s1 == s2:
-                continue
 
-            outp = outp + '      '
-            if is_first:
-                outp = outp + '   '
-                is_first = False
+    outp = ''
+    if len(hosts):
+        outp += '(\n'
+
+        if len(hosts) > 1:
+            outp += '   (\n'
+            for s1 in hosts:
+                for s2 in hosts:
+                    if s1 == s2:
+                        continue
+
+                    outp += '      '
+                    if is_first:
+                        outp += '   '
+                        is_first = False
+                    else:
+                        outp += 'or '
+                    outp += '(ip.src=={s1} and ip.dst=={s2})\n'.format(s1=s1.ip, s2=s2.ip)
+            outp += '   )\n'
+        else:
+            outp += '    ip.src={s}\n'.format(s=hosts[0].ip)
+
+        outp += '    and '
+
+    if type(events) == list and len(events) > 1:
+        outp += '(\n'
+        for i,e in enumerate(events):
+            outp += '      '
+            if i>0:
+                outp += 'or '
             else:
-                outp = outp + 'or '
-            outp = outp + '(ip.src=={s1} and ip.dst=={s2})\n'.format(s1=s1.ip, s2=s2.ip)
+                outp += '   '
+            outp += ' http ~ "<eventType>.*{event}.*</eventType>"\n'.format(event=e)
+        outp += '   )\n'
+    elif len(events) == 1:
+        outp += '   http ~ "<eventType>.*{event}.*</eventType>\n'.format(event=e)
 
-    outp = outp + '   )\n'
-    outp = outp + '    and (http contains "StartCall" or http ~ "<eventType>.*endMedia.*</eventType>" or http ~ "<eventType>.*CDRType1.*</eventType>" or http ~ "<eventType>.*EndCall.*</eventType>")\n'
-    outp = outp + ')'
+    outp += ')'
 
     if not line_breaks:
-        outp_nw = re.sub('\n', '', outp)
-        outp_nw = re.sub('\s+', ' ', outp)
+        outp = re.sub('\n', '', outp)
+        outp = re.sub('\s+', ' ', outp)
 
     return outp
 
@@ -40,6 +61,7 @@ def main():
     parser = ld.GetArgParse(description='Generate an SVG of a sequence diagram based on input data')
     parser.add_argument('hosts', metavar='HOSTS', nargs='+', help='List of hosts to include')
     parser.add_argument('--nice', action='store_true', dest='nice', help='Format nicely')
+    parser.add_argument('-e', '--events', metavar='EVENTS', dest='events', help='List of events to query', default=['StartCall', 'EndCall', 'endMedia', 'CDRType1'])
 
     args = parser.parse_args()
 
@@ -53,7 +75,7 @@ def main():
         if h is not None:
             hosts.append(h)
 
-    outp = ld.generateDisplayFilter(hosts, args.nice)
+    outp = ld.generateDisplayFilter(hosts=hosts, events=args.events, line_breaks=args.nice)
     print(outp)
 
 if __name__ == "__main__":

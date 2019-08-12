@@ -6,23 +6,34 @@ import pyshark
 from enum import Enum
 
 from svgobjs import *
+from generateWireSharkDisplayFilters import generateDisplayFilter
 
+def queryLogs(hosts, events):
+    msgs_df = generateDisplayFilter(hosts=hosts, events=events, line_breaks=False)
 
-def queryLogs():
-    pass
 
 def main():
     """ Loads all the data and prepares the SVG """
 
     # Load CLI parameters
     parser = GetArgParse()
-    parser.add_argument('hosts', action='store', metavar='HOSTS', nargs='+', help='List of hosts to include')
-    parser.add_argument('-e', '--events', metavar='EVENTS', dest='events', required=True, help='List of events to query')
+    parser.add_argument(
+        '--hosts',
+        action='store',
+        metavar='HOSTS',
+        nargs='+',
+        help='List of hosts to include'
+    )
+    parser.add_argument(
+        '-e', '--events',
+        metavar='EVENTS',
+        dest='events',
+        nargs='+',
+        default=['StartCall', 'EndCall', 'endMedia', 'CDRType1'],
+        help='List of events to query'
+    )
 
     args = parser.parse_args()
-
-    if not os.path.exists(args.config):
-        print('Cannot find config file %s'%args.config, file=sys.stderr)
 
     all_hosts, *ed = read_config(args.config)
 
@@ -31,6 +42,8 @@ def main():
         h = Host.match(hosts=all_hosts, name_or_ip=hname)
         if h is not None:
             hosts.append(h)
+
+    queryLogs(hosts=hosts, events=args.events)
 
 
 if __name__ == "__main__":
