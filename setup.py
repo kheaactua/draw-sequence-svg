@@ -9,7 +9,7 @@ setup(name='funniest',
     author_email='matthew.g.russell@gmail.com',
     license='MIT',
     packages=find_packages(),
-    install_requires=['aenum'],
+    install_requires=['aenum', 'pyshark'],
     python_requires='>=3',
     entry_points = {
       'console_scripts': [
