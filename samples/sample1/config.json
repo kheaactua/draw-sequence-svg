@@ -1,5 +1,5 @@
 {
-   "systems": [
+   "hosts": [
 		{
 			"id": "App2A",
 			"name": "App2A",

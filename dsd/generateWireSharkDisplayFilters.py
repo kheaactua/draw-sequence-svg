@@ -6,12 +6,12 @@ import argparse
 from svgobjs import *
 
 def main():
-    """ Provided with system names, produce wireshark display filters """
+    """ Provided with host names, produce wireshark display filters """
 
     # Load CLI arguments
     parser = argparse.ArgumentParser(description='Generate an SVG of a sequence diagram based on input data')
     parser.add_argument('-c', '--config', dest='config', metavar='FILE', required=True, action='store', type=str, help='JSON Config file')
-    parser.add_argument('systems', metavar='SYSTEM', nargs='+', help='List of systems to include')
+    parser.add_argument('hosts', metavar='HOST', nargs='+', help='List of hosts to include')
 
     args = parser.parse_args()
 
@@ -20,18 +20,18 @@ def main():
 
     # /Load CLI arguments
 
-    all_systems, ed = read_config(args.config)
+    all_hosts, ed = read_config(args.config)
 
-    systems=[]
-    for s in all_systems:
-        if s.name in args.systems:
-            systems.append(s)
+    hosts=[]
+    for s in all_hosts:
+        if s.name in args.hosts:
+            hosts.append(s)
 
     is_first = True
     outp = '(\n'
     outp = outp + '   (\n'
-    for s1 in systems:
-        for s2 in systems:
+    for s1 in hosts:
+        for s2 in hosts:
             if s1 == s2:
                 continue
 

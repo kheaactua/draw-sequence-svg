@@ -27,7 +27,7 @@ class SvgObject(object):
         """ Method to process some values after getting inputs but before exporting SVG """
         pass
 
-class System(SvgObject):
+class Host(SvgObject):
     def __init__(self, id, name, ip, sort_nudge):
         super().__init__()
         self.id   = id
@@ -62,9 +62,9 @@ class System(SvgObject):
 
         svg = '''<g
        transform="translate({x_g},{y_g})"
-       id="system-{system}">
+       id="host-{host}">
       <rect
-         id="system-{system}-titlebox"
+         id="host-{host}-titlebox"
          width="{width}"
          height="{height}"
          x="{x_r}"
@@ -73,7 +73,7 @@ class System(SvgObject):
       <path
          style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
          d="m {x_l},{y_l} v {lifeline_length}"
-         id="system-{system}-lifeline"
+         id="host-{host}-lifeline"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
       <text
@@ -81,21 +81,21 @@ class System(SvgObject):
          style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:125%;font-family:Sans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:{fontcolor};fill-opacity:1;stroke:none;stroke-width:0.25px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
          x="{x_t}"
          y="{y_t}"
-         id="system-{system}-label"><tspan
+         id="host-{host}-label"><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
            style="font-size:{fontsize}px;text-align:center;text-anchor:middle;fill:{fontcolor};stroke-width:0.2px"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="system-{system}-label-name">{system_name}</tspan><tspan
+           id="host-{host}-label-name">{host_name}</tspan><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="system-{system}-label-ip">{ip}</tspan></text>
+           id="host-{host}-label-ip">{ip}</tspan></text>
     </g>'''.format(
-            system=self.id.lower(),
-            system_name=self.name,
+            host=self.id.lower(),
+            host_name=self.name,
             ip=self.ip,
             width=self.display_options.width,
             height=self.display_options.height,
@@ -202,9 +202,9 @@ class EventStyle(object):
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
-    def __init__(self, template, systems, events, event_styles, doc_info, settings):
+    def __init__(self, template, hosts, events, event_styles, doc_info, settings):
         self.template    = template
-        self.systems     = systems
+        self.hosts     = hosts
         self.events      = events
         self.doc_info    = doc_info
         self.settings    = settings
@@ -213,13 +213,13 @@ class Diagram(object):
         """ Generate the SVG """
 
         # First we have to position everything
-        svg_systems = ''
-        for i, s in enumerate(self.systems):
-            s.display_options.x = self.settings['systemSpacing']*i + self.settings['timeMarginLeft']
+        svg_hosts = ''
+        for i, s in enumerate(self.hosts):
+            s.display_options.x = self.settings['hostSpacing']*i + self.settings['timeMarginLeft']
             s.display_options.y = 0
             s.display_options.page_height = self.doc_info['height']
             s.compile()
-            svg_systems = svg_systems + s.to_svg()
+            svg_hosts = svg_hosts + s.to_svg()
 
         events_svg = ''
         for i, e in enumerate(self.events):
@@ -228,9 +228,9 @@ class Diagram(object):
             e.compile()
             events_svg = events_svg + e.to_svg()
 
-        outp = re.sub('{{systems}}',      svg_systems, self.template)
+        outp = re.sub('{{hosts}}',      svg_hosts, self.template)
         outp = re.sub('{{time-left}}',    str(0), outp)
-        outp = re.sub('{{time-top}}',     str(self.systems[0].display_options.height + 10), outp)
+        outp = re.sub('{{time-top}}',     str(self.hosts[0].display_options.height + 10), outp)
         outp = re.sub('{{events}}',  events_svg, outp)
 
         return outp
@@ -239,21 +239,21 @@ def read_config(filename):
     with open(filename) as json_file:
         data = json.load(json_file)
 
-    # Maybe write something later dst automatically load system objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
-    systems = []
-    for s in data['systems']:
-        systems.append(System(s['id'], s['name'], s['ip'], s['sort_nudge']))
+    # Maybe write something later dst automatically load host objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
+    hosts = []
+    for s in data['hosts']:
+        hosts.append(host(s['id'], s['name'], s['ip'], s['sort_nudge']))
 
     # Sort the list
-    systems.sort(key=lambda x: x.sort_nudge)
+    hosts.sort(key=lambda x: x.sort_nudge)
 
     event_style = {}
     for e in data['eventTypes']:
         event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
 
-    return systems, event_style, data["settings"]
+    return hosts, event_style, data["settings"]
 
-def read_data(filename, systems, event_styles, settings):
+def read_data(filename, hosts, event_styles, settings):
     csv.register_dialect('eventStyle', delimiter = '\t', skipinitialspace=True)
 
     data = []
@@ -264,8 +264,8 @@ def read_data(filename, systems, event_styles, settings):
                 continue
             if re.match('^\s*#', row[0]):
                 continue
-            src = next(s for s in systems if s.id == row[1])
-            dst = next(s for s in systems if s.id == row[2])
+            src = next(s for s in hosts if s.id == row[1])
+            dst = next(s for s in hosts if s.id == row[2])
             sty = event_styles[row[3]] if row[3] in event_styles else None
             data.append(Event(time=row[0], src=src, dst=dst, event_type=row[3], event_style=sty))
 
@@ -298,14 +298,14 @@ def read_template(filename):
 
     return contents, info
 
-def filter_systems(systems, event_data):
-    """ Remove systems that aren't involved in any events """
-    system_copy = systems.copy()
-    for s in system_copy:
+def filter_hosts(hosts, event_data):
+    """ Remove hosts that aren't involved in any events """
+    host_copy = hosts.copy()
+    for s in host_copy:
         found = False
         for e in event_data:
             if s == e.src or s == e.dst:
                 found = True
                 break
         if not found:
-            systems.remove(s)
+            hosts.remove(s)

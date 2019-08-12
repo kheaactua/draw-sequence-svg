@@ -34,20 +34,20 @@ def main():
 
     # /Load CLI parameters
 
-    systems, event_styles, settings = read_config(args.config)
-    event_data = read_data(args.data, systems=systems, event_styles=event_styles, settings=settings)
-    filter_systems(systems=systems, event_data=event_data)
+    hosts, event_styles, settings = read_config(args.config)
+    event_data = read_data(args.data, hosts=hosts, event_styles=event_styles, settings=settings)
+    filter_hosts(hosts=hosts, event_data=event_data)
     template, info = read_template(args.template)
 
-    if not systems:
-        print('No systems were involved in any of the events.  Aborting', file=sys.stderr)
+    if not hosts:
+        print('No hosts were involved in any of the events.  Aborting', file=sys.stderr)
         sys.exit(1)
 
     if not event_data:
         print('No events were provided.  Aborting', file=sys.stderr)
         sys.exit(1)
 
-    diag = Diagram(template=template, systems=systems, events=event_data, event_styles=event_styles, doc_info=info, settings=settings)
+    diag = Diagram(template=template, hosts=hosts, events=event_data, event_styles=event_styles, doc_info=info, settings=settings)
     contents = diag.generate()
 
     with open(args.output, 'w') as f: f.write(contents)
