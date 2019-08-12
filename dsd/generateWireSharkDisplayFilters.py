@@ -3,30 +3,10 @@
 from __future__ import print_function
 
 import argparse
+import dsd.loaddata as ld
 from svgobjs import *
 
-def main():
-    """ Provided with host names, produce wireshark display filters """
-
-    # Load CLI arguments
-    parser = argparse.ArgumentParser(description='Generate an SVG of a sequence diagram based on input data')
-    parser.add_argument('-c', '--config', dest='config', metavar='FILE', required=True, action='store', type=str, help='JSON Config file')
-    parser.add_argument('hosts', metavar='HOST', nargs='+', help='List of hosts to include')
-
-    args = parser.parse_args()
-
-    if not os.path.exists(args.config):
-        print('Cannot find config file %s'%args.config, file=sys.stderr)
-
-    # /Load CLI arguments
-
-    all_hosts, ed = read_config(args.config)
-
-    hosts=[]
-    for s in all_hosts:
-        if s.name in args.hosts:
-            hosts.append(s)
-
+def generateDisplayFilter(hosts, line_breaks=True):
     is_first = True
     outp = '(\n'
     outp = outp + '   (\n'
@@ -47,14 +27,34 @@ def main():
     outp = outp + '    and (http contains "StartCall" or http ~ "<eventType>.*endMedia.*</eventType>" or http ~ "<eventType>.*CDRType1.*</eventType>" or http ~ "<eventType>.*EndCall.*</eventType>")\n'
     outp = outp + ')'
 
+    if not line_breaks:
+        outp_nw = re.sub('\n', '', outp)
+        outp_nw = re.sub('\s+', ' ', outp)
 
+    return outp
+
+def main():
+    """ Provided with host names, produce wireshark display filters """
+
+    # Load CLI arguments
+    parser = ld.GetArgParse(description='Generate an SVG of a sequence diagram based on input data')
+    parser.add_argument('hosts', metavar='HOSTS', nargs='+', help='List of hosts to include')
+    parser.add_argument('--nice', action='store_true', dest='nice', help='Format nicely')
+
+    args = parser.parse_args()
+
+    # /Load CLI arguments
+
+    all_hosts, *ed = ld.read_config(args.config)
+
+    hosts=[]
+    for hname in args.hosts:
+        h = Host.match(hosts=all_hosts, name_or_ip=hname)
+        if h is not None:
+            hosts.append(h)
+
+    outp = ld.generateDisplayFilter(hosts, args.nice)
     print(outp)
-    print("\n")
-
-    outp_nw = re.sub('\n', '', outp)
-    outp_nw = re.sub('\s+', ' ', outp)
-    print(outp_nw)
-
 
 if __name__ == "__main__":
     main()

@@ -15,22 +15,12 @@ def main():
     """ Loads all the data and prepares the SVG """
 
     # Load CLI parameters
-    parser = argparse.ArgumentParser(description='Generate an SVG of a sequence diagram based on input data')
-    parser.add_argument('-c', '--config',   dest='config',   metavar='FILE', required=True, action='store', type=str, help='JSON Config file')
-    parser.add_argument('-i', '--input',    dest='data',     action='store', required=True, type=str, help='CSV file listing the events')
+    parser = GetArgParse(description='Generate an SVG of a sequence diagram based on input data')
+    parser.add_argument('-i', '--input',    dest='data',     action='store', required=argparse_file_exists, type=str, help='CSV file listing the events')
     parser.add_argument('-o', '--output',   dest='output',   action='store', required=True, type=str, help='Output SVG name')
-    parser.add_argument('-t', '--template', dest='template', action='store', default='data/template.svg', type=str, help='Template SVG file')
+    parser.add_argument('-t', '--template', dest='template', action='store', default='data/template.svg', type=argparse_file_exists, help='Template SVG file')
 
     args = parser.parse_args()
-
-    if not os.path.exists(args.config):
-        print('Cannot find config file %s'%args.config, file=sys.stderr)
-
-    if not os.path.exists(args.data):
-        print('Cannot find data file %s'%args.data, file=sys.stderr)
-
-    if not os.path.exists(args.template):
-        print('Cannot find template file %s'%args.data, file=sys.stderr)
 
     # /Load CLI parameters
 

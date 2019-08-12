@@ -9,6 +9,7 @@ import csv
 import json
 import re
 import random
+import argparse
 from aenum import Enum
 
 class DisplayOptions(object):
@@ -71,6 +72,20 @@ class Host(SvgObject):
 
         # Position that events can use to hook on to
         self.display_options.abs_center = 0
+
+    @staticmethod
+    def match(hosts, name_or_ip):
+        """ Provided with a list of systems form a config file, match a specific system by its IP or its name """
+
+        for h in hosts:
+            if h.id.lower() == name_or_ip.lower():
+                return h
+            elif h.name.lower() == name_or_ip.lower():
+                return h
+            elif h.name.lower() == name_or_ip.lower():
+                return h
+
+        return None
 
     def __str__(self):
         return '%s [%s]'%(self.name, self.ip)
@@ -342,3 +357,26 @@ def filter_hosts(hosts, event_data):
                 break
         if not found:
             hosts.remove(s)
+
+def argparse_file_exists(f):
+    """ Used by argparse to see whether the filename exists, if so return the filename, otherwise raise an exception """
+    if not os.path.exists(f):
+        raise argparse.ArgumentTypeError('Cannot read %s'%f)
+    else:
+        return f
+
+def GetArgParse(*args, **kwargs):
+    """ Factory for argparse library with some of the common elements used by every script already loaded """
+
+    parser = argparse.ArgumentParser(*args, *kwargs)
+    parser.add_argument(
+        '-c', '--config',
+        dest='config',
+        metavar='FILE',
+        required=True,
+        action='store',
+        help='JSON Config file',
+        type=argparse_file_exists,
+    )
+
+    return parser
