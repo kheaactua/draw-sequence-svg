@@ -9,6 +9,8 @@ setup(name='funniest',
     author_email='matthew.g.russell@gmail.com',
     license='MIT',
     packages=find_packages(),
+    install_requires=['aenum'],
+    python_requires='>=3',
     entry_points = {
       'console_scripts': [
           'generateSequenceDiag = dsd.generateSequenceDiag:main',

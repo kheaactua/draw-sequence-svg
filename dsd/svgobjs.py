@@ -9,6 +9,7 @@ import csv
 import json
 import re
 import random
+from aenum import Enum
 
 class DisplayOptions(object):
     def __init__(self, x,y):
@@ -27,13 +28,39 @@ class SvgObject(object):
         """ Method to process some values after getting inputs but before exporting SVG """
         pass
 
+class HostType(Enum):
+    APP   = 1
+    GA    = 2
+    MIS   = 3
+    ADMIN = 4
+    ELM   = 5
+    REC   = 6
+
+    @staticmethod
+    def nameToEnum(name):
+        if 'APP' == name:
+            return self.APP
+        elif 'MIS' == name:
+            return self.GA
+        elif 'GA' == name:
+            return self.GA
+        elif 'REC' == name:
+            return self.REC
+        elif 'ADMIN' == name:
+            return self.ADMIN
+        elif 'ELM' == name:
+            return self.ELM
+        else:
+            raise ValueError('Cannot interpret host type %s'%name)
+
 class Host(SvgObject):
-    def __init__(self, id, name, ip, sort_nudge):
+    def __init__(self, id, name, ip, sort_nudge=100, host_type=HostType.APP):
         super().__init__()
         self.id   = id
         self.name = name
         self.ip   = ip
         self.sort_nudge = sort_nudge
+        self.host_type=host_type
 
         self.display_options.width  = 40
         self.display_options.height = 15
@@ -242,7 +269,13 @@ def read_config(filename):
     # Maybe write something later dst automatically load host objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
     hosts = []
     for s in data['hosts']:
-        hosts.append(host(s['id'], s['name'], s['ip'], s['sort_nudge']))
+        hosts.append(Host(
+            id=s['id'],
+            name=s['name'],
+            ip=s['ip'],
+            host_type=s['host_type'],
+            sort_nudge=s['sort_nudge']
+        ))
 
     # Sort the list
     hosts.sort(key=lambda x: x.sort_nudge)
