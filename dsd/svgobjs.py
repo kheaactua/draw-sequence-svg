@@ -397,22 +397,10 @@ def GetArgParse(*args, **kwargs):
         '-c', '--config',
         dest='config',
         metavar='FILE',
-        # required=True,
         action='store',
         help='JSON Config file',
         type=argparse_file_exists,
-        default='/tmp/config.json'
     )
-
-    # parser.add_argument(
-    #     '-c', '--config',
-    #     dest='config',
-    #     metavar='FILE',
-    #     action='store',
-    #     help='JSON Config file',
-    #     type=argparse.FileType('r'),
-    #     default='/tmp/config.json'
-    # )
 
     parser.add_argument(
         '-v', '--verbose',
