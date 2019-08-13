@@ -2,16 +2,13 @@
 
 from __future__ import print_function
 
-import pyshark
-from enum import Enum
-
-from svgobjs import *
+from loaddata import generate_display_filter, query_logs, get_arg_parse, read_config, match_hosts, write_events
 
 def main():
     """ Loads all the data and prepares the SVG """
 
     # Load CLI parameters
-    parser = GetArgParse()
+    parser = get_arg_parse()
     parser.add_argument(
         '--hosts',
         action='store',
@@ -27,25 +24,31 @@ def main():
         default=['StartCall', 'EndCall', 'endMedia', 'CDRType1'],
         help='List of events to query'
     )
+    parser.add_argument(
+        '-w', '--write-events',
+        metavar='OUTFILE',
+        dest='events_outfile',
+        help='If provided, write the discovered events to a CSV file'
+    )
 
     args = parser.parse_args()
 
     all_hosts, *ed = read_config(args.config)
 
-    hosts=[]
-    for hname in args.hosts:
-        h = Host.match(hosts=all_hosts, name_or_ip=hname)
-        if h is not None:
-            hosts.append(h)
+    # Match the user entered hosts to the configured hosts
+    hosts=match_hosts(all_hosts, args.hosts)
 
-<<<<<<< HEAD
     if args.verbose:
         print('Examining events %s between %s'%(', '.join(args.events), ', '.join([str(x) for x in hosts])))
-    queryLogs(hosts=hosts, events=args.events, verbose=args.verbose)
-=======
-    queryLogs(hosts=hosts, events=args.events)
->>>>>>> 7db1cdb... Provided the display query to queryLogs
+    events = query_logs(
+        capture_filename='data/LoggingService_processing.pcapng',
+        hosts=hosts,
+        events=args.events,
+        verbose=args.verbose
+    )
 
+    if args.events_outfile:
+        write_events(filename=args.events_outfile, events=events)
 
 if __name__ == "__main__":
     main()

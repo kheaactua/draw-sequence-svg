@@ -77,7 +77,7 @@
 	],
 	"settings": {
 		"systemBgColor": "#c47e6c",
-		"systemSpacing": 60,
+		"hostSpacing": 60,
 		"timeMarginLeft": 20,
 		"timeSpacing": 15,
 		"maxTimeGap": 5,

@@ -5,11 +5,8 @@ from __future__ import print_function
 import argparse
 import sys
 import os
-import csv
-import json
 import re
 import random
-import argparse
 from aenum import Enum
 
 class DisplayOptions(object):
@@ -283,132 +280,5 @@ class Diagram(object):
         outp = re.sub('{{events}}',  events_svg, outp)
 
         return outp
-
-def read_config(filename):
-    with open(filename) as json_file:
-        data = json.load(json_file)
-
-    # Maybe write something later dst automatically load host objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
-    hosts = []
-    for s in data['hosts']:
-        hosts.append(Host(
-            id=s['id'],
-            name=s['name'],
-            ip=s['ip'],
-            host_type=s['host_type'],
-            sort_nudge=s['sort_nudge']
-        ))
-
-    # Sort the list
-    hosts.sort(key=lambda x: x.sort_nudge)
-
-    event_style = {}
-    for e in data['eventTypes']:
-        event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
-
-    return hosts, event_style, data["settings"]
-
-def read_data(filename, hosts, event_styles, settings):
-    csv.register_dialect('eventStyle', delimiter = '\t', skipinitialspace=True)
-
-    data = []
-    with open(filename, 'r') as csv_file:
-        reader = csv.reader(csv_file, dialect='eventStyle')
-        for row in reader:
-            if len(row) < 4:
-                continue
-            if re.match('^\s*#', row[0]):
-                continue
-            src = next(s for s in hosts if s.id == row[1])
-            dst = next(s for s in hosts if s.id == row[2])
-            sty = event_styles[row[3]] if row[3] in event_styles else None
-
-            ack_time = None
-            if len(row) > 3:
-                ack_time = row[4]
-
-            packet_id = None
-            if len(row) > 4:
-                packet_id = row[5]
-
-            data.append(Event(
-                time=row[0],
-                src=src,
-                dst=dst,
-                event_type=row[3],
-                ack_time=ack_time,
-                packet_id=packet_id,
-                event_style=sty
-            ))
-
-    # Make sure there are no huge gaps in the times.  If there are, reduce them
-    for i,e in enumerate(data):
-        if i==0: continue
-        dt = e.time - data[i-1].time
-        if dt > settings['maxTimeGap']:
-            for en in data[i:]:
-                en.time = en.time-(dt-settings['maxTimeGap'])
-
-    return data
-
-def read_template(filename):
-    """ Import our template, and read some properties from it """
-    with open(filename, 'r') as f: contents=f.read()
-
-    # Determine some properties, get the svg tag
-    tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
-    props = re.findall(r'\b(?P<attr>\w+)=\"(?P<val>.*?)\"', tag.group(0), re.MULTILINE)
-    info = {}
-    for m in props:
-        if 'width' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['width'] = float(units.group('val'))
-            info['unit']  = units.group('unit')
-        elif 'height' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['height'] = float(units.group('val'))
-
-    return contents, info
-
-def filter_hosts(hosts, event_data):
-    """ Remove hosts that aren't involved in any events """
-    host_copy = hosts.copy()
-    for s in host_copy:
-        found = False
-        for e in event_data:
-            if s == e.src or s == e.dst:
-                found = True
-                break
-        if not found:
-            hosts.remove(s)
-
-def argparse_file_exists(f):
-    """ Used by argparse to see whether the filename exists, if so return the filename, otherwise raise an exception """
-    if not os.path.exists(f):
-        raise argparse.ArgumentTypeError('Cannot read %s'%f)
-    else:
-        return f
-
-def GetArgParse(*args, **kwargs):
-    """ Factory for argparse library with some of the common elements used by every script already loaded """
-
-    parser = argparse.ArgumentParser(*args, *kwargs)
-    parser.add_argument(
-        '-c', '--config',
-        dest='config',
-        metavar='FILE',
-        action='store',
-        help='JSON Config file',
-        type=argparse_file_exists,
-    )
-
-    parser.add_argument(
-        '-v', '--verbose',
-        dest='verbose',
-        action='store_true',
-        help='Increase verbosity',
-    )
-
-    return parser
 
 # vim: sw=4 ts=4 sts=0 expandtab ft=python ffs=unix :

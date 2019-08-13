@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(name='funniest',
-    version='0.1',
+    version='0.2',
     description='Rudimentary module to generate sequence diagrams',
     url='https://github.com/kheaactua/draw-sequence-svg',
     author='Matthew Russell',
@@ -15,6 +15,7 @@ setup(name='funniest',
       'console_scripts': [
           'generateSequenceDiag = dsd.generateSequenceDiag:main',
           'generateWireSharkDisplayFilters = dsd.generateWireSharkDisplayFilters:main',
+          'queryCaptureLogs = dsd.queryLogs:main',
       ]
     },
     zip_safe=False
