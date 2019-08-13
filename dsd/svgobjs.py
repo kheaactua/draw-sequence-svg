@@ -154,22 +154,29 @@ class Host(SvgObject):
         return svg
 
 class Event(SvgObject):
-    def __init__(self, time, src, dst, event_type, event_style):
+    """ Object representing an event (StartCall, EndCall, etc.) with enough
+    data to include in a timing diagram """
+
+    def __init__(self, time, src, dst, event_type, time_label=None, event_style=None, packet_id=None, ack_time=None):
         super().__init__()
-        self.time        = float(time)
-        self.time_label  = float(time)
+        self.time        = time
+        if time_label is not None:
+            self.time_label  = str(time)
         self.src         = src
         self.dst         = dst
         self.event_type  = event_type
         self.event_style = event_style
+        self.packet_id   = packet_id
+        self.ack_time    = ack_time
 
+        # TODO this can be a default, but it should also be configurable
         self.display_options.fontsize = 3.3
 
     def __str__(self):
-        return '%2.2f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+        return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
 
     def __repr__(self):
-        return '%2.3f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+        return '%s: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -315,7 +322,24 @@ def read_data(filename, hosts, event_styles, settings):
             src = next(s for s in hosts if s.id == row[1])
             dst = next(s for s in hosts if s.id == row[2])
             sty = event_styles[row[3]] if row[3] in event_styles else None
-            data.append(Event(time=row[0], src=src, dst=dst, event_type=row[3], event_style=sty))
+
+            ack_time = None
+            if len(row) > 3:
+                ack_time = row[4]
+
+            packet_id = None
+            if len(row) > 4:
+                packet_id = row[5]
+
+            data.append(Event(
+                time=row[0],
+                src=src,
+                dst=dst,
+                event_type=row[3],
+                ack_time=ack_time,
+                packet_id=packet_id,
+                event_style=sty
+            ))
 
     # Make sure there are no huge gaps in the times.  If there are, reduce them
     for i,e in enumerate(data):
@@ -373,10 +397,30 @@ def GetArgParse(*args, **kwargs):
         '-c', '--config',
         dest='config',
         metavar='FILE',
+        # required=True,
         action='store',
         help='JSON Config file',
         type=argparse_file_exists,
         default='/tmp/config.json'
     )
 
+    # parser.add_argument(
+    #     '-c', '--config',
+    #     dest='config',
+    #     metavar='FILE',
+    #     action='store',
+    #     help='JSON Config file',
+    #     type=argparse.FileType('r'),
+    #     default='/tmp/config.json'
+    # )
+
+    parser.add_argument(
+        '-v', '--verbose',
+        dest='verbose',
+        action='store_true',
+        help='Increase verbosity',
+    )
+
     return parser
+
+# vim: sw=4 ts=4 sts=0 expandtab ft=python ffs=unix :

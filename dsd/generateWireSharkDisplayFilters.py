@@ -31,20 +31,24 @@ def generateDisplayFilter(hosts, events, line_breaks=True):
         else:
             outp += '    ip.src={s}\n'.format(s=hosts[0].ip)
 
-        outp += '    and '
+        outp += '   and '
 
-    if type(events) == list and len(events) > 1:
-        outp += '(\n'
-        for i,e in enumerate(events):
-            outp += '      '
-            if i>0:
-                outp += 'or '
-            else:
-                outp += '   '
-            outp += ' http ~ "<eventType>.*{event}.*</eventType>"\n'.format(event=e)
-        outp += '   )\n'
-    elif len(events) == 1:
-        outp += '   http ~ "<eventType>.*{event}.*</eventType>\n'.format(event=e)
+    if type(events) == list:
+        if  len(events) > 1:
+            outp += '(\n'
+            for i,e in enumerate(events):
+                outp += '      '
+                if i>0:
+                    outp += 'or '
+                else:
+                    outp += '   '
+                outp += 'http.response.code ~ "<eventType>.*{event}.*</eventType>"\n'.format(event=e)
+            outp += '      or (http and tcp.ack)\n'
+            outp += '   )\n'
+
+        elif len(events) == 1:
+            outp += '   http.response.code ~ "<eventType>.*{event}.*</eventType>\n'.format(event=e)
+            outp += 'or (http and tcp.ack)\n'
 
     outp += ')'
 
@@ -59,7 +63,7 @@ def main():
 
     # Load CLI arguments
     parser = ld.GetArgParse(description='Generate an SVG of a sequence diagram based on input data')
-    parser.add_argument('hosts', metavar='HOSTS', nargs='+', help='List of hosts to include')
+    parser.add_argument('--hosts', metavar='HOSTS', dest='hosts', nargs='+', help='List of hosts to include', default=[])
     parser.add_argument('--nice', action='store_true', dest='nice', help='Format nicely')
     parser.add_argument('-e', '--events', metavar='EVENTS', dest='events', help='List of events to query', default=['StartCall', 'EndCall', 'endMedia', 'CDRType1'])
 

@@ -80,6 +80,7 @@
 		"systemSpacing": 60,
 		"timeMarginLeft": 20,
 		"timeSpacing": 15,
-		"maxTimeGap": 5
+		"maxTimeGap": 5,
+		"timeUnit": "secondsSinceStart"
 	}
 }
