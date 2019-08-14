@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import sys
 import os
 import re
 import csv
@@ -10,15 +11,15 @@ import argparse
 import datetime
 import pyshark
 
-from svgobjs import *
+import dsd.svgobjs as so
 
 class ConfigFile(object):
     """ Object representing the config file """
 
     @classmethod
     def from_json(cls, data):
-        hosts       = list(map(Host.from_json,       data['hosts']))
-        event_types = list(map(EventType.from_json, data['eventTypes']))
+        hosts       = list(map(so.Host.from_json,       data['hosts']))
+        event_types = list(map(so.EventType.from_json, data['eventTypes']))
         settings    = data['settings']
         return hosts, event_types, settings
 
@@ -65,7 +66,7 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
             if len(row) > 5:
                 ack_frame_id = row[6]
 
-            data.append(Event(
+            data.append(so.Event(
                 time         = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
                 src          = src,
                 dst          = dst,
@@ -75,7 +76,7 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
                 ack_frame_id = ack_frame_id,
             ))
 
-    Event.sort_and_process(events=data, settings=settings)
+    so.Event.sort_and_process(events=data, settings=settings)
 
     return data
 
@@ -132,7 +133,7 @@ def match_hosts(all_hosts, user_hosts):
     """ Given a list of hosts from a command line, match to Host objects in user_hosts """
     hosts=[]
     for hname in user_hosts:
-        h = Host.match(hosts=all_hosts, name_or_ip=hname)
+        h = so.Host.match(hosts=all_hosts, name_or_ip=hname)
         if h is not None:
             hosts.append(h)
     return hosts
@@ -276,7 +277,7 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
 
             et = next(e for e in event_types if e.name == find_event_type(p['xml']))
 
-            events.append(Event(
+            events.append(so.Event(
                 time=p.sniff_time,
                 time_label='%3.2f'%(dt.microseconds/1000),
                 src=src,
@@ -300,7 +301,7 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             # print('Skipping %d'%int(p.number), p['tcp'].ack, p['http'].responce_code)
 
 
-    Event.sort_and_process(events=events, settings=settings)
+    so.Event.sort_and_process(events=events, settings=settings)
 
     return events
 
