@@ -12,39 +12,34 @@ import pyshark
 
 from svgobjs import *
 
+class ConfigFile(object):
+    """ Object representing the config file """
+
+    @classmethod
+    def from_json(cls, data):
+        hosts       = list(map(Host.from_json,       data['hosts']))
+        event_types = list(map(EventType.from_json, data['eventTypes']))
+        settings    = data['settings']
+        return hosts, event_types, settings
+
 def read_config(filename):
     with open(filename) as json_file:
-        data = json.load(json_file)
-
-    # Maybe write something later dst automatically load host objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
-    hosts = []
-    for s in data['hosts']:
-        hosts.append(Host(
-            id=s['id'],
-            name=s['name'],
-            ip=s['ip'],
-            host_type=s['host_type'],
-            sort_nudge=s['sort_nudge']
-        ))
+        hosts, event_types, settings = ConfigFile.from_json(json.load(json_file))
 
     # Sort the list
     hosts.sort(key=lambda x: x.sort_nudge)
 
-    event_style = {}
-    for e in data['eventTypes']:
-        event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
+    return hosts, event_types, settings
 
-    return hosts, event_style, data["settings"]
-
-def read_events(filename, hosts, event_styles, settings, verbose=False):
-    csv.register_dialect('eventStyle', delimiter = ',', skipinitialspace=True)
+def read_events(filename, hosts, event_types, settings, verbose=False):
+    csv.register_dialect('EventType', delimiter = ',', skipinitialspace=True)
 
     if verbose:
         print('Reading event data from %s'%filename)
 
     data = []
     with open(filename, 'r') as csv_file:
-        reader = csv.reader(csv_file, dialect='eventStyle')
+        reader = csv.reader(csv_file, dialect='EventType')
         for i, row in enumerate(reader):
             if i<1:
                 continue
@@ -56,7 +51,7 @@ def read_events(filename, hosts, event_styles, settings, verbose=False):
             src = next(s for s in hosts if s.id == row[1])
             dst = next(s for s in hosts if s.id == row[2])
 
-            sty = event_styles[row[3]] if row[3] in event_styles else None
+            et = next(e for e in event_types if e.name == row[3])
 
             ack_time = None
             if len(row) > 3:
@@ -70,10 +65,9 @@ def read_events(filename, hosts, event_styles, settings, verbose=False):
                 time=datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
                 src=src,
                 dst=dst,
-                event_type=row[3],
+                event_type=et,
                 ack_time=ack_time,
                 packet_id=packet_id,
-                event_style=sty
             ))
 
     Event.sort_and_process(events=data, settings=settings)
@@ -82,7 +76,6 @@ def read_events(filename, hosts, event_styles, settings, verbose=False):
 
 def write_events(filename, events):
     """ Write the events to a CSV file """
-    # print("writing events: ", events)
     with open(filename, 'w') as f:
         colHeadings = ['time', 'src', 'dst', 'eventType', 'ackTime', 'packetId']
         writer = csv.DictWriter(f, delimiter=',', fieldnames=colHeadings)
@@ -158,7 +151,6 @@ def get_arg_parse(*args, **kwargs):
         type=argparse_file_exists,
         default='/tmp/config.json'
     )
-
 
     parser.add_argument(
         '-v', '--verbose',
@@ -254,7 +246,6 @@ def query_logs(capture_filename, hosts, events, verbose=False):
 
         # The -1 is because of the nest level I think?
         return layer_xml.get_field('cdata').fields[t_idx-1].binary_value.decode('ascii')
-
 
     events = []
     is_first=True

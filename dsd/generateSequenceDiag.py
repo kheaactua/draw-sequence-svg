@@ -21,8 +21,8 @@ def main():
 
     # /Load CLI parameters
 
-    hosts, event_styles, settings = read_config(args.config)
-    event_data = read_events(args.data, hosts=hosts, event_styles=event_styles, settings=settings, verbose=args.verbose)
+    hosts, event_types, settings = read_config(args.config)
+    event_data = read_events(args.data, hosts=hosts, event_types=event_types, settings=settings, verbose=args.verbose)
     filter_hosts(hosts=hosts, event_data=event_data)
     template, info = read_template(args.template)
 
@@ -34,7 +34,7 @@ def main():
         print('No events were provided.  Aborting', file=sys.stderr)
         sys.exit(1)
 
-    diag = Diagram(template=template, hosts=hosts, events=event_data, event_styles=event_styles, doc_info=info, settings=settings)
+    diag = Diagram(template=template, hosts=hosts, events=event_data, doc_info=info, settings=settings)
     contents = diag.generate()
 
     with open(args.output, 'w') as f: f.write(contents)
