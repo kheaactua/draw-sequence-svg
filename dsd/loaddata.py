@@ -76,15 +76,7 @@ def read_events(filename, hosts, event_styles, settings, verbose=False):
                 event_style=sty
             ))
 
-    # Make sure there are no huge gaps in the times.  If there are, reduce them
-    if 'maxTimeGap' in settings and int(settings['maxTimeGap']) > 0:
-        mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
-        for i,e in enumerate(data):
-            if i==0: continue
-            dt = e.time - data[i-1].time
-            if dt > mdt:
-                for en in data[i:]:
-                    en.time = en.time-(dt-mdt)
+    Event.sort_and_process(events=data, settings=settings)
 
     return data
 
@@ -301,8 +293,8 @@ def query_logs(capture_filename, hosts, events, verbose=False):
             pass
             # print('Skipping %d'%int(p.number), p['tcp'].ack, p['http'].responce_code)
 
+    Event.sort_and_process(events=data, settings=settings)
+
     return events
-
-
 
 # vim: sw=4 ts=4 sts=0 expandtab ft=python ffs=unix :

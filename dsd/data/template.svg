@@ -65,8 +65,8 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <g inkscape:label="Systems" inkscape:groupmode="layer" id="layer-systems">
-     {{systems}}
+  <g inkscape:label="Hosts" inkscape:groupmode="layer" id="layer-hosts">
+     {{hosts}}
   </g>
   <g inkscape:label="Events" inkscape:groupmode="layer" id="layer-timeline" transform="translate({{time-left}},{{time-top}})">
     {{events}}

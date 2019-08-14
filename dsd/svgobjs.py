@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import random
+import datetime
 from aenum import Enum
 
 class DisplayOptions(object):
@@ -157,8 +158,8 @@ class Event(SvgObject):
     def __init__(self, time, src, dst, event_type, time_label=None, event_style=None, packet_id=None, ack_time=None):
         super().__init__()
         self.time        = time
-        if time_label is not None:
-            self.time_label  = str(time)
+        self.dt          = datetime.timedelta(seconds=0)
+        self.time_label  = str(time)
         self.src         = src
         self.dst         = dst
         self.event_type  = event_type
@@ -174,6 +175,28 @@ class Event(SvgObject):
 
     def __repr__(self):
         return '%s: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+
+    @staticmethod
+    def sort_and_process(events, settings):
+        """ Sort the events by time, and ensure every event has a dt from the first entry """
+        events.sort(key=lambda x: x.time)
+
+        if len(events) < 2:
+            return
+
+        first_event = events[0]
+        for e in events:
+            e.dt = e.time - first_event.time
+
+        # Make sure there are no huge gaps in the times.  If there are, reduce them
+        if 'maxTimeGap' in settings and int(settings['maxTimeGap']) > 0:
+            mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
+            for i,e in enumerate(events):
+                if i==0: continue
+                dt = e.time - events[i-1].time
+                if dt > mdt:
+                    for en in events[i:]:
+                        en.time = en.time-(dt-mdt)
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -270,7 +293,7 @@ class Diagram(object):
         events_svg = ''
         for i, e in enumerate(self.events):
             e.display_options.x = self.settings['timeMarginLeft']
-            e.display_options.y = int(float(e.time - self.events[0].time) * self.settings['timeSpacing'])
+            e.display_options.y = int(e.dt.seconds * self.settings['timeSpacing'])
             e.compile()
             events_svg = events_svg + e.to_svg()
 
