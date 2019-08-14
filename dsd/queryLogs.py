@@ -33,7 +33,7 @@ def main():
 
     args = parser.parse_args()
 
-    all_hosts, *ed = read_config(args.config)
+    all_hosts, event_types, settings = read_config(args.config)
 
     # Match the user entered hosts to the configured hosts
     hosts=match_hosts(all_hosts, args.hosts)
@@ -43,7 +43,9 @@ def main():
     events = query_logs(
         capture_filename='data/LoggingService_processing.pcapng',
         hosts=hosts,
-        events=args.events,
+        event_type_names=args.events,
+        event_types=event_types,
+        settings=settings,
         verbose=args.verbose
     )
 

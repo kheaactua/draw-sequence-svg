@@ -5,7 +5,6 @@ from __future__ import print_function
 import argparse
 import dsd.loaddata as ld
 
-
 def main():
     """ Provided with host names, produce wireshark display filters """
 
@@ -27,7 +26,7 @@ def main():
         if h is not None:
             hosts.append(h)
 
-    outp = ld.generate_display_filter(hosts=hosts, events=args.events, line_breaks=args.nice)
+    outp = ld.generate_display_filter(hosts=hosts, event_type_names=args.events, line_breaks=args.nice)
     print(outp)
 
 if __name__ == "__main__":

@@ -39,6 +39,5 @@ def main():
 
     with open(args.output, 'w') as f: f.write(contents)
 
-
 if __name__ == "__main__":
     main()

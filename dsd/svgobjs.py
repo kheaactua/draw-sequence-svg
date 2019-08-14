@@ -259,11 +259,49 @@ class Host(SvgObject):
 
         return svg
 
+class EventType(object):
+    """ Hold information about an event """
+
+    def __init__(self, event_type: str, display_options: DisplayOptions=None):
+        self.name = event_type
+
+        # Defaults
+        self.display_options = DisplayOptions({
+            'color': '#000000',
+            'font_size': 3.3,
+        })
+        if not display_options is None:
+            self.display_options.update(display_options)
+
+    @classmethod
+    def from_json(cls, data):
+        display_options = None
+        if 'displayOptions' in data:
+            display_options = DisplayOptions.from_json(data['displayOptions'])
+        name = data['eventType']
+
+        es = cls(event_type=name, display_options=display_options)
+        return es
+
+    def __repr__(self):
+        return '%s(%s)'%(self.name, self.display_options.color)
+
 class Event(SvgObject):
     """ Object representing an event (StartCall, EndCall, etc.) with enough
     data to include in a timing diagram """
 
-    def __init__(self, time: datetime.datetime, src: Host, dst: Host, event_type, time_label=None, packet_id=None, ack_time=None):
+    def __init__(
+        self,
+        time: datetime.datetime,
+        src: Host,
+        dst: Host,
+        event_type: EventType,
+        time_label=None,
+        frame_id: int=None,
+        ack_time: int=None,
+        ack_frame_id: int=None
+    ):
+
         super().__init__()
         self.time         = time
         self.dt           = datetime.timedelta(seconds = 0)
@@ -271,8 +309,9 @@ class Event(SvgObject):
         self.src          = src
         self.dst          = dst
         self.event_type   = event_type
-        self.packet_id    = int(packet_id)
-        self.ack_time     = float(ack_time)
+        self.frame_id     = int(frame_id)
+        self.ack_frame_id = int(ack_frame_id) if ack_frame_id is not None else None
+        self.ack_time     = float(ack_time) if ack_time is not None else None
 
     def __str__(self):
         return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
@@ -325,6 +364,7 @@ class Event(SvgObject):
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
+    <capture:info send-frame="{frame_id}" ack-frame="{ack_frame_id}" />
     <g
        id="{id}-event"
        transform="translate({x_e},{y_e})">
@@ -366,39 +406,11 @@ class Event(SvgObject):
             text_style=self.event_type.display_options.text_style(),
             tspan_style=self.event_type.display_options.text_style(),
             eventcolor=self.event_type.display_options.color,
-            event_label=event_label
+            event_label=event_label,
+            frame_id=self.frame_id, ack_frame_id=self.ack_frame_id,
         )
 
         return svg
-
-class EventType(object):
-    """ Hold information about an event """
-
-    def __init__(self, event_type: str, display_options: DisplayOptions=None):
-        super(EventType, self).__setattr__('_data', {})
-
-        self.name = event_type
-
-        # Defaults
-        self.display_options = DisplayOptions({
-            'color': '#000000',
-            'font_size': 3.3,
-        })
-        if not display_options is None:
-            self.display_options.update(display_options)
-
-    @classmethod
-    def from_json(cls, data):
-        display_options = None
-        if 'displayOptions' in data:
-            display_options = DisplayOptions.from_json(data['displayOptions'])
-        name = data['eventType']
-
-        es = cls(event_type=name, display_options=display_options)
-        return es
-
-    def __repr__(self):
-        return '%s(%s)'%(self.name, self.display_options.color)
 
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """

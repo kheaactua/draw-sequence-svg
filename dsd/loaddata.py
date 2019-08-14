@@ -57,17 +57,22 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
             if len(row) > 3:
                 ack_time = row[4]
 
-            packet_id = None
+            frame_id = None
             if len(row) > 4:
-                packet_id = row[5]
+                frame_id = row[5]
+
+            ack_frame_id = None
+            if len(row) > 5:
+                ack_frame_id = row[6]
 
             data.append(Event(
-                time=datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
-                src=src,
-                dst=dst,
-                event_type=et,
-                ack_time=ack_time,
-                packet_id=packet_id,
+                time         = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
+                src          = src,
+                dst          = dst,
+                event_type   = et,
+                ack_time     = ack_time,
+                frame_id     = frame_id,
+                ack_frame_id = ack_frame_id,
             ))
 
     Event.sort_and_process(events=data, settings=settings)
@@ -77,7 +82,7 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
 def write_events(filename, events):
     """ Write the events to a CSV file """
     with open(filename, 'w') as f:
-        colHeadings = ['time', 'src', 'dst', 'eventType', 'ackTime', 'packetId']
+        colHeadings = ['time', 'src', 'dst', 'eventType', 'ackTime', 'frameId', 'ackFrameId']
         writer = csv.DictWriter(f, delimiter=',', fieldnames=colHeadings)
 
         writer.writeheader()
@@ -88,7 +93,8 @@ def write_events(filename, events):
                 'dst':        e.dst.id,
                 'eventType':  e.event_type,
                 'ackTime':    e.ack_time,
-                'packetId':   e.packet_id,
+                'frameId':    e.frame_id,
+                'ackFrameId': e.ack_frame_id,
             })
 
 def read_template(filename):
@@ -161,7 +167,7 @@ def get_arg_parse(*args, **kwargs):
 
     return parser
 
-def generate_display_filter(hosts, events, line_breaks=True):
+def generate_display_filter(hosts, event_type_names, line_breaks=True):
     """ Generate a display filter intended to search for Solacom events in a
     capture file between specified hosts """
 
@@ -193,10 +199,10 @@ def generate_display_filter(hosts, events, line_breaks=True):
 
     ack_filter = '(http.response.code==200 and tcp.ack)'
     et_filter = 'http ~ "<eventType>{event}</eventType>'
-    if type(events) == list:
-        if  len(events) > 1:
+    if type(event_type_names) == list:
+        if  len(event_type_names) > 1:
             outp += '(\n'
-            for i,e in enumerate(events):
+            for i,e in enumerate(event_type_names):
                 outp += '      '
                 if i>0:
                     outp += 'or '
@@ -206,7 +212,7 @@ def generate_display_filter(hosts, events, line_breaks=True):
             outp += '      or %s\n'%ack_filter
             outp += '   )\n'
 
-        elif len(events) == 1:
+        elif len(event_type_names) == 1:
             outp += ('   %s"\n'%et_filter).format(event=e)
             outp += 'or %s\n'%ack_filter
 
@@ -218,11 +224,15 @@ def generate_display_filter(hosts, events, line_breaks=True):
 
     return outp
 
-
-def query_logs(capture_filename, hosts, events, verbose=False):
+def query_logs(capture_filename, hosts, event_type_names, event_types, settings={}, verbose=False):
     """ Query a capture file for events """
 
-    msgs_df = generate_display_filter(hosts=hosts, events=events, line_breaks=verbose)
+    msgs_df = generate_display_filter(
+        hosts=hosts,
+        event_type_names=event_type_names,
+        line_breaks=False
+    )
+
     if verbose:
         print('Display Filter:\n%s'%msgs_df)
 
@@ -264,29 +274,33 @@ def query_logs(capture_filename, hosts, events, verbose=False):
             src = next(s for s in hosts if s.ip == str(p['ip'].src))
             dst = next(s for s in hosts if s.ip == str(p['ip'].dst))
 
+            et = next(e for e in event_types if e.name == find_event_type(p['xml']))
+
             events.append(Event(
                 time=p.sniff_time,
                 time_label='%3.2f'%(dt.microseconds/1000),
                 src=src,
                 dst=dst,
-                event_type=find_event_type(p['xml']),
-                packet_id=int(p.number),
+                event_type=et,
+                frame_id=int(p.number),
             ))
             if verbose:
                 print('pid=%d event=%s\n'%(int(p.number), events[len(events)-1]))
 
         elif p['tcp'].ack and 'http' in p and int(p['http'].response_code)==200:
-            request_frame = p['http'].request_in
-            e = next((e for e in events if e.packet_id == int(request_frame)), None)
+            request_frame = int(p['http'].request_in)
+            e = next((e for e in events if e.frame_id == request_frame), None)
             if e:
-                e.ack_time = p['tcp'].time_relative
+                e.ack_time = float(p['tcp'].time_relative)
+                e.ack_frame_id = int(p.number)
             else:
-                print("Could not find event for request_frame=%d"%int(request_frame), file=sys.stderr)
+                print("Could not find event for request_frame=%d"%request_frame, file=sys.stderr)
         else:
             pass
             # print('Skipping %d'%int(p.number), p['tcp'].ack, p['http'].responce_code)
 
-    Event.sort_and_process(events=data, settings=settings)
+
+    Event.sort_and_process(events=events, settings=settings)
 
     return events
 
