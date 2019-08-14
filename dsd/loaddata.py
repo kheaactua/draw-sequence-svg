@@ -240,6 +240,8 @@ def query_logs(capture_filename, hosts, events, verbose=False):
         capture_filename,
         display_filter=msgs_df,
     )
+    if verbose:
+        cap.set_debug()
 
     def find_event_type(layer_xml):
         tag = layer_xml.get_field('tag')

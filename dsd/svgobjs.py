@@ -17,6 +17,9 @@ class DisplayOptions(object):
         self.color = '#000000'
         self.fontsize = 10
 
+    # TODO create a font-style function to replace the really long style lines with something sensible
+
+
 class SvgObject(object):
     """ Container for display objects like position, etc """
 
@@ -210,6 +213,8 @@ class Event(SvgObject):
 
         # Position the label randomely a little
         label_pos = a_len/2.0 + random.randint(int(-1*a_len/4), int(a_len/4))
+
+        # TODO create a font-size function
 
         svg = '''<g
      id="{id}-event-group"
