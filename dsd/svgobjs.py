@@ -202,7 +202,8 @@ class Host(SvgObject):
         super().compile()
 
         self.display_options.abs_center = self.display_options.x + (self.display_options.width/2.0)
-        self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings['timeSpacing'])  + self.display_options.height
+        if self.last_event:
+            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings['timeSpacing'])  + self.display_options.height
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -268,7 +269,7 @@ class EventType(object):
         # Defaults
         self.display_options = DisplayOptions({
             'color': '#000000',
-            'font_size': 3.3,
+            'font_size': 3.0,
         })
         if not display_options is None:
             self.display_options.update(display_options)
@@ -301,17 +302,41 @@ class Event(SvgObject):
         ack_time: int=None,
         ack_frame_id: int=None
     ):
-
         super().__init__()
+
+        """ Time of the event """
         self.time         = time
+
+        """ Time since first event """
         self.dt           = datetime.timedelta(seconds = 0)
+
+        """ Time label the user will see """
         self.time_label   = str(time)
+
+        """ Source/dest hosts """
         self.src          = src
         self.dst          = dst
+
+        """ EventType """
         self.event_type   = event_type
+
+        """ Frame ID in the capture logs """
         self.frame_id     = int(frame_id)
+
+        """ Frame ID of the ACK message """
         self.ack_frame_id = int(ack_frame_id) if ack_frame_id is not None else None
+
+        """ Time it took to receive the ACK """
         self.ack_time     = float(ack_time) if ack_time is not None else None
+
+        """ Pointer to previous event (set in sort_and_process) """
+        self.prev = None
+
+        """ Pointer to next previous event (set in sort_and_process) """
+        self.next = None
+
+        """ Settings object """
+        self.settings = None
 
     def __str__(self):
         return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
@@ -324,23 +349,29 @@ class Event(SvgObject):
         """ Sort the events by time, and ensure every event has a dt from the first entry """
         events.sort(key=lambda x: x.time)
 
+        for i,e in enumerate(events):
+            e.settings = settings
+            if i != 0:
+                e.prev = events[i-1]
+            if i != (len(events)-1):
+                e.next = events[i+1]
+
+            e.dt = e.time - events[0].time
+
+            if settings['timeUnit'] == 'secondsSinceStart':
+                e.time_label = '%4.3f'%e.dt.total_seconds()
+
         if len(events) < 2:
             return
 
-        first_event = events[0]
-        for e in events:
-            e.dt = e.time - first_event.time
-
-            if settings['timeUnit'] == 'secondsSinceStart':
-                e.time_label = '%3.2f'%e.dt.total_seconds()
-
         # Make sure there are no huge gaps in the times.  If there are, reduce them
-        if 'maxTimeGap' in settings and int(settings['maxTimeGap']) > 0:
+        if 'maxTimeGap' in settings and float(settings['maxTimeGap']) > 0:
             mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
             for i,e in enumerate(events):
                 if i==0: continue
-                dt = e.time - events[i-1].time
+                dt = events[i].time - events[i-1].time
                 if dt > mdt:
+
                     for en in events[i:]:
                         en.dt = en.dt - (dt-mdt)
 
@@ -361,10 +392,34 @@ class Event(SvgObject):
         if self.ack_time is not None:
             event_label += ' (%2.0f ms)'%self.ack_time
 
+        x_t = 0
+        time_text_obj = '''<text
+       id="{id}-time-label-text"
+       x="{x_t}"
+       y="{y_t}"
+       style="{text_style}"
+       xml:space="preserve"><tspan
+         style="{tspan_style}"
+         x="0"
+         y="0"
+         id="{id}-time-label-tspan"
+         sodipodi:role="line">{t}</tspan></text>'''.format(
+            id='time-%s'%re.sub('\W', '', str(self.time)),
+            x_t=x_t, y_t=0,
+            text_style=self.event_type.display_options.text_style(),
+            tspan_style=self.event_type.display_options.text_style(),
+            t=self.time_label,
+        )
+
+        if self.prev:
+            dt = self.time - self.prev.time
+            if dt < datetime.timedelta(seconds=self.settings['minLabelTimeGap']):
+                time_text_obj=''
+
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
-    <capture:info send-frame="{frame_id}" ack-frame="{ack_frame_id}" />
+    <capture:info event-time="{time}" event-type="{event_type}" send-frame="{frame_id}" ack-frame="{ack_frame_id}" ack-time="{ack_time}" />
     <g
        id="{id}-event"
        transform="translate({x_e},{y_e})">
@@ -384,30 +439,21 @@ class Event(SvgObject):
            y="{y_l}"
            id="{id}-label-tspan">{event_label}</tspan></text>
     </g>
-    <text
-       id="{id}-time-label-text"
-       x="{x_t}"
-       y="{y_t}"
-       style="{text_style}"
-       xml:space="preserve"><tspan
-         style="tspan_style"
-         x="{x_t}"
-         y="{y_t}"
-         id="{id}-time-label-tspan"
-         sodipodi:role="line">{t}</tspan></text>
+    {time_text_obj}
+
   </g>'''.format(
-            t=self.time_label,
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
             x_l=label_pos, y_l=0,
-            x_t=0, y_t=0,
+            time=self.time, event_type=self.event_type.name, ack_time=self.ack_time,
             id='time-%s'%re.sub('\W', '', str(self.time)),
             text_style=self.event_type.display_options.text_style(),
             tspan_style=self.event_type.display_options.text_style(),
             eventcolor=self.event_type.display_options.color,
             event_label=event_label,
             frame_id=self.frame_id, ack_frame_id=self.ack_frame_id,
+            time_text_obj=time_text_obj
         )
 
         return svg
@@ -430,7 +476,7 @@ class Diagram(object):
         for i, h in enumerate(self.hosts):
             h.display_options.x = self.settings['hostSpacing']*i + self.settings['timeMarginLeft']
             h.display_options.y = 0
-            h.last_event = next(e for e in reversed(self.events) if e.src==h or e.dst==h)
+            h.last_event = next((e for e in reversed(self.events) if e.src==h or e.dst==h), None)
             h.compile(settings=self.settings)
             svg_hosts = svg_hosts + h.to_svg()
 

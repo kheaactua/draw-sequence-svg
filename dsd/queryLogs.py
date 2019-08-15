@@ -64,6 +64,7 @@ def main():
 
     if args.verbose:
         print('Examining events %s between %s'%(', '.join(args.events), ', '.join([str(x) for x in hosts])))
+
     events = ld.query_logs(
         capture_filename=args.capture_filename,
         hosts=hosts,
@@ -72,6 +73,8 @@ def main():
         settings=settings,
         verbose=args.verbose
     )
+
+    ld.filter_hosts(hosts=hosts, events=events)
 
     if args.events_outfile:
         ld.write_events(filename=args.events_outfile, events=events)

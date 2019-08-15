@@ -23,7 +23,7 @@ def main():
 
     hosts, event_types, settings = ld.read_config(args.config)
     event_data = ld.read_events(args.data, hosts=hosts, event_types=event_types, settings=settings, verbose=args.verbose)
-    ld.filter_hosts(hosts=hosts, event_data=event_data)
+    ld.filter_hosts(hosts=hosts, events=event_data)
     template, info = ld.read_template(args.template)
 
     if not hosts:

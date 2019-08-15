@@ -21,6 +21,15 @@ class ConfigFile(object):
         hosts       = list(map(so.Host.from_json,       data['hosts']))
         event_types = list(map(so.EventType.from_json, data['eventTypes']))
         settings    = data['settings']
+
+        # Defaults on Settings (until it's its own object)
+        if 'hostSpacing'     not in settings: settings['hostSpacing']     = 60
+        if 'timeMarginLeft'  not in settings: settings['timeMarginLeft']  = 20
+        if 'timeSpacing'     not in settings: settings['timeSpacing']     = 25
+        if 'minLabelTimeGap' not in settings: settings['minLabelTimeGap'] = 0.01
+        if 'maxTimeGap'      not in settings: settings['maxTimeGap']      = 2
+        if 'timeUnit'        not in settings: settings['timeUnit']        = 'secondsSinceStart'
+
         return hosts, event_types, settings
 
 def read_config(filename):
@@ -52,7 +61,11 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
             src = next(s for s in hosts if s.id == row[1])
             dst = next(s for s in hosts if s.id == row[2])
 
-            et = next(e for e in event_types if e.name == row[3])
+            try:
+                et = next(e for e in event_types if e.name == row[3])
+            except (StopIteration):
+                print('Cannot match event "%s", skipping event'%row[3], file=sys.stderr)
+                continue
 
             ack_time = None
             if len(row) > 3:
@@ -92,7 +105,7 @@ def write_events(filename, events):
                 'time':       e.time,
                 'src':        e.src.id,
                 'dst':        e.dst.id,
-                'eventType':  e.event_type,
+                'eventType':  e.event_type.name,
                 'ackTime':    e.ack_time,
                 'frameId':    e.frame_id,
                 'ackFrameId': e.ack_frame_id,
@@ -117,12 +130,12 @@ def read_template(filename):
 
     return contents, info
 
-def filter_hosts(hosts, event_data):
+def filter_hosts(hosts, events):
     """ Remove hosts that aren't involved in any events """
     host_copy = hosts.copy()
     for s in host_copy:
         found = False
-        for e in event_data:
+        for e in events:
             if s == e.src or s == e.dst:
                 found = True
                 break
@@ -288,14 +301,15 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             if verbose:
                 print('pid=%d event=%s\n'%(int(p.number), events[len(events)-1]))
 
-        elif p['tcp'].ack and 'http' in p and int(p['http'].response_code)==200:
+        elif p['tcp'].ack and 'http' in p and hasattr(p['http'], 'response_code') and int(p['http'].response_code)==200 and hasattr(p['http'], 'request_in'):
             request_frame = int(p['http'].request_in)
             e = next((e for e in events if e.frame_id == request_frame), None)
             if e:
                 e.ack_time = float(p['tcp'].time_relative)
                 e.ack_frame_id = int(p.number)
             else:
-                print("Could not find event for request_frame=%d"%request_frame, file=sys.stderr)
+                if verbose:
+                    print("Could not find event for request_frame=%d"%request_frame, file=sys.stderr)
         else:
             pass
             # print('Skipping %d'%int(p.number), p['tcp'].ack, p['http'].responce_code)
