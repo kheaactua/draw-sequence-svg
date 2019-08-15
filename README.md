@@ -22,11 +22,11 @@ the diagrams.
 - Written for my current company, so we search for company specific `events` in the packages, so not generalisable
 - Is not based on any SVG library or anything, it pretty much just uses string manipulation to build an SVG file (the code doesn't know any SVG semantics, so it wouldn't be easy to change any of the shapes or make very different diagrams.)
 
-# Setup
+## Setup
 
 Two files are required, a `config` file and a `data` file.  See the samples for example.
 
-# Run
+## Run
 
 ```sh
 queryCaptureLogs                                        \
@@ -37,3 +37,7 @@ queryCaptureLogs                                        \
    --write-events /tmp/events.csv                       \
    --output-svg   diag.svg
 ```
+
+# Notes
+
+This repo includes some setup config files, data, and README files for particular cases.  These were included as an example of steps taken to diagnose issues (that and I'm not sure where else to save them. :) )

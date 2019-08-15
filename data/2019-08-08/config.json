@@ -93,7 +93,7 @@
             "host_type": "ADMIN",
             "sort_nudge": 4,
             "displayOptions": {
-                "backgroundColor": "#668000",
+                "backgroundColor": "#d45500",
                 "fontColor": "#ffffff"
             }
         },
@@ -167,11 +167,11 @@
         }
     ],
     "settings": {
-        "systemBgColor": "#c47e6c",
         "hostSpacing": 60,
         "timeMarginLeft": 20,
-        "timeSpacing": 25,
-        "maxTimeGap": 5,
+        "timeSpacing": 1000,
+        "maxTimeGap": 0.02,
+        "minLabelTimeGap": 0.005,
         "timeUnit": "secondsSinceStart"
     }
 }
