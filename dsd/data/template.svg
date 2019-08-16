@@ -7,9 +7,18 @@
    xmlns="http://www.w3.org/2000/svg"
    id="svg8"
    version="1.1"
-   viewBox="0 0 210 297"
-   height="297mm"
-   width="210mm">
+   viewBox="0 0 {{page_width}} {{page_height}}"
+   width="{{page_width}}mm"
+   height="{{page_height}}mm">
+  <script type="text/javascript">
+// <![CDATA[
+    function show_capture_info(e)
+    {
+        window.alert(JSON.stringify(e));
+        <!-- 'time=' + e.time + ', type=' + e.eventType + ', sendFrame='"2019-08-08 15:20:07.899711" event-type="CDRtype1" send-frame="10861" ack-frame="10862" ack-time="44.164221" />'); -->
+    }
+// ]]>
+  </script>
   <defs
      id="defs2">
     <marker
@@ -65,8 +74,8 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <g inkscape:label="Systems" inkscape:groupmode="layer" id="layer-systems">
-     {{systems}}
+  <g inkscape:label="Hosts" inkscape:groupmode="layer" id="layer-hosts">
+     {{hosts}}
   </g>
   <g inkscape:label="Events" inkscape:groupmode="layer" id="layer-timeline" transform="translate({{time-left}},{{time-top}})">
     {{events}}

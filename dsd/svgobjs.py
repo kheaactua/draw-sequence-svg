@@ -5,45 +5,192 @@ from __future__ import print_function
 import argparse
 import sys
 import os
-import csv
-import json
 import re
 import random
+import datetime
+from aenum import Enum
 
-class DisplayOptions(object):
-    def __init__(self, x,y):
-        self.x = x
-        self.y = y
-        self.color = '#000000'
-        self.fontsize = 10
+class JsonSerializatble(object):
+    @staticmethod
+    def json2py_name(name):
+        """ Converts camel case JSON attribute names to python snake case names """
+        return re.sub(r'([A-Z])', r'_\1', name).lower()
+
+    def __getattr__(self, attr):
+        if attr.startswith('_'):
+            return super(JsonSerializatble, self).__getattribute__(attr) # pylint: disable-no-member
+        elif attr in self._data:
+            return self._data[attr]
+        else:
+            return None
+
+    def __setattr__(self, attr, value):
+        if attr.startswith('_'):
+            super(JsonSerializatble, self).__setattr__(attr, value)
+        else:
+            self._data[self.json2py_name(attr)] = value
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(data)
+
+    def update(self, obj):
+        if type(obj) is dict:
+            for k,v in obj.items():
+                self._data[self.json2py_name(k)] = v
+        else:
+            super(DisplayOptions, self).__setattr__('_data', dict(self._data, **obj._data))
+
+class DisplayOptions(JsonSerializatble):
+    def __init__(self, data: dict = {}):
+        super(DisplayOptions, self).__setattr__('_data', {})
+        super(DisplayOptions, self).__setattr__('_defaults', {})
+
+        self._defaults = {
+            'x': 0,
+            'y': 0,
+            'width': 1,
+            'height': 1,
+            'color': '#000000', # deprecated
+            'font_size': 10,
+            'font_color': '#000000',
+        }
+
+        self.update(data)
+
+    def __getattr__(self, attr):
+        if super(DisplayOptions, self).__getattr__(attr) is None and attr in super(DisplayOptions, self).__getattr__('_defaults'):
+            return super(DisplayOptions, self).__getattr__('_defaults')[attr]
+        else:
+            return super(DisplayOptions, self).__getattr__(attr)
+
+    def __str__(self):
+        return str(self._data)
+
+    def text_style(self):
+        """ Return the content for a <text> style attribute """
+        parts = []
+        parts.append(['font-style',       'normal'])
+        parts.append(['font-weight',      'normal'])
+        parts.append(['font-size',        '%fpx'%self.font_size])
+        parts.append(['line-height',      '125%'])
+        parts.append(['font-family',      'Sans'])
+        parts.append(['text-align',       'center'])
+        parts.append(['letter-spacing',   '0px'])
+        parts.append(['word-spacing',     '0px'])
+        parts.append(['text-anchor',      'middle'])
+        parts.append(['fill',             self.font_color])
+        parts.append(['fill-opacity',     '1'])
+        parts.append(['stroke',           'none'])
+        parts.append(['stroke-width',     '0.25px'])
+        parts.append(['stroke-linecap',   'butt'])
+        parts.append(['stroke-linejoin',  'miter'])
+        parts.append(['stroke-opacity',   '1'])
+
+        parts2=[]
+        for p in parts:
+            parts2.append(':'.join(p))
+
+        return ';'.join(parts2)
+
+    def tspan_style(self):
+        """ Return the content for a <text> style attribute """
+        parts = []
+        parts.append(['font-style',    'normal'])
+        parts.append(['text-align',    'center'])
+        parts.append(['text-anchor',   'middle'])
+        parts.append(['fill',          self.font_color])
+        parts.append(['font-family',   'Sans'])
+        parts.append(['stroke-width',  '0.26px'])
+
+        parts2=[]
+        for p in parts:
+            parts2.append(':'.join(p))
+
+        return ';'.join(parts2)
 
 class SvgObject(object):
     """ Container for display objects like position, etc """
 
     def __init__(self):
-        self.display_options = DisplayOptions(0,0)
+        self.display_options = DisplayOptions()
 
     def compile(self):
         """ Method to process some values after getting inputs but before exporting SVG """
         pass
 
-class System(SvgObject):
-    def __init__(self, id, name, ip, sort_nudge):
-        super().__init__()
-        self.id   = id
-        self.name = name
-        self.ip   = ip
+class HostType(Enum):
+    """ ENUM to distinguish host type """
+
+    APP   = 1
+    GA    = 2
+    MIS   = 3
+    ADMIN = 4
+    ELM   = 5
+    REC   = 6
+
+    @staticmethod
+    def name_to_enum(name):
+        if 'APP' == name:
+            return self.APP
+        elif 'MIS' == name:
+            return self.GA
+        elif 'GA' == name:
+            return self.GA
+        elif 'REC' == name:
+            return self.REC
+        elif 'ADMIN' == name:
+            return self.ADMIN
+        elif 'ELM' == name:
+            return self.ELM
+        else:
+            raise ValueError('Cannot interpret host type %s'%name)
+
+class Host(SvgObject):
+    """ Host (App, Admin, etc) system """
+
+    def __init__(self, id: str, name: str, ip: str, sort_nudge: int=100, host_type=HostType.APP, display_options: DisplayOptions=None):
+        super(Host, self).__init__()
+        self.id         = id
+        self.name       = name
+        self.ip         = ip
         self.sort_nudge = sort_nudge
+        self.host_type  = host_type
 
         self.display_options.width  = 40
         self.display_options.height = 15
-        self.display_options.bgcolor = '#c47e6c'
-        self.display_options.fontsize = 4.2
-        self.display_options.fontcolor = '#000000'
+        self.display_options.background_color = '#c47e6c'
+        self.display_options.font_size = 4.2
         self.display_options.lifeline_length = 0
+
+        if not display_options is None:
+            self.display_options.update(display_options)
 
         # Position that events can use to hook on to
         self.display_options.abs_center = 0
+
+    @classmethod
+    def from_json(cls, data):
+        display_options = None
+        if 'displayOptions' in data:
+            display_options = DisplayOptions.from_json(data['displayOptions'])
+            del data['displayOptions']
+        host = cls(**data, display_options=display_options)
+        return host
+
+    @staticmethod
+    def match(hosts, name_or_ip):
+        """ Provided with a list of systems form a config file, match a specific system by its IP or its name """
+
+        for h in hosts:
+            if h.id.lower() == name_or_ip.lower():
+                return h
+            elif h.name.lower() == name_or_ip.lower():
+                return h
+            elif h.name.lower() == name_or_ip.lower():
+                return h
+
+        return None
 
     def __str__(self):
         return '%s [%s]'%(self.name, self.ip)
@@ -51,83 +198,187 @@ class System(SvgObject):
     def __repr__(self):
         return '%s'%self.id
 
-    def compile(self):
+    def compile(self, settings):
         super().compile()
 
         self.display_options.abs_center = self.display_options.x + (self.display_options.width/2.0)
-        self.display_options.lifeline_length = self.display_options.page_height - self.display_options.height
+        if self.last_event:
+            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings['timeSpacing'])  + self.display_options.height
 
     def to_svg(self):
         """ Serialize to an XML block """
 
+        # Name
+        y_t=self.display_options.height * (3/7)
+        # IP
+        y_t2=self.display_options.height * (6/7)
+
         svg = '''<g
        transform="translate({x_g},{y_g})"
-       id="system-{system}">
+       id="host-{host}">
       <rect
-         id="system-{system}-titlebox"
+         id="host-{host}-titlebox"
          width="{width}"
          height="{height}"
          x="{x_r}"
          y="{y_r}"
-         style="fill:{bgcolor};stroke-width:0.26px" />
+         style="fill:{background_color};stroke-width:0.26px" />
       <path
          style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
          d="m {x_l},{y_l} v {lifeline_length}"
-         id="system-{system}-lifeline"
+         id="host-{host}-lifeline"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:125%;font-family:Sans;text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:{fontcolor};fill-opacity:1;stroke:none;stroke-width:0.25px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         style="{text_style}"
          x="{x_t}"
          y="{y_t}"
-         id="system-{system}-label"><tspan
+         id="host-{host}-label"><tspan
            sodipodi:role="line"
            x="{x_t}"
            y="{y_t}"
-           style="font-size:{fontsize}px;text-align:center;text-anchor:middle;fill:{fontcolor};stroke-width:0.2px"
-           style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="system-{system}-label-name">{system_name}</tspan><tspan
+           style="{tspan_style}"
+           id="host-{host}-label-name">{host_name}</tspan><tspan
            sodipodi:role="line"
            x="{x_t}"
-           y="{y_t}"
+           y="{y_t2}"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="system-{system}-label-ip">{ip}</tspan></text>
+           id="host-{host}-label-ip">{ip}</tspan></text>
     </g>'''.format(
-            system=self.id.lower(),
-            system_name=self.name,
+            host=self.id.lower(),
+            host_name=self.name,
             ip=self.ip,
             width=self.display_options.width,
             height=self.display_options.height,
-            bgcolor=self.display_options.bgcolor,
-            fontsize=self.display_options.fontsize,
-            fontcolor=self.display_options.fontcolor,
+            background_color=self.display_options.background_color,
+            text_style=self.display_options.text_style(),
+            tspan_style=self.display_options.tspan_style(),
+            fontSize=self.display_options.fontSize,
+            fontColor=self.display_options.fontColor,
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_r=0, y_r=0,
-            x_t=self.display_options.width/2, y_t=self.display_options.height/2,
+            x_t=self.display_options.width/2, y_t=y_t, y_t2=y_t2,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
             lifeline_length=self.display_options.lifeline_length
         )
 
         return svg
 
-class Event(SvgObject):
-    def __init__(self, time, src, dst, event_type, event_style):
-        super().__init__()
-        self.time        = float(time)
-        self.time_label  = float(time)
-        self.src         = src
-        self.dst         = dst
-        self.event_type  = event_type
-        self.event_style = event_style
+class EventType(object):
+    """ Hold information about an event """
 
-        self.display_options.fontsize = 3.3
+    def __init__(self, event_type: str, display_options: DisplayOptions=None):
+        self.name = event_type
 
-    def __str__(self):
-        return '%2.2f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+        # Defaults
+        self.display_options = DisplayOptions({
+            'color': '#000000',
+            'font_size': 3.0,
+        })
+        if not display_options is None:
+            self.display_options.update(display_options)
+
+    @classmethod
+    def from_json(cls, data):
+        display_options = None
+        if 'displayOptions' in data:
+            display_options = DisplayOptions.from_json(data['displayOptions'])
+        name = data['eventType']
+
+        es = cls(event_type=name, display_options=display_options)
+        return es
 
     def __repr__(self):
-        return '%2.3f: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+        return '%s(%s)'%(self.name, self.display_options.color)
+
+class Event(SvgObject):
+    """ Object representing an event (StartCall, EndCall, etc.) with enough
+    data to include in a timing diagram """
+
+    def __init__(
+        self,
+        time: datetime.datetime,
+        src: Host,
+        dst: Host,
+        event_type: EventType,
+        time_label=None,
+        frame_id: int=None,
+        ack_time: int=None,
+        ack_frame_id: int=None
+    ):
+        super().__init__()
+
+        """ Time of the event """
+        self.time         = time
+
+        """ Time since first event """
+        self.dt           = datetime.timedelta(seconds = 0)
+
+        """ Time label the user will see """
+        self.time_label   = str(time)
+
+        """ Source/dest hosts """
+        self.src          = src
+        self.dst          = dst
+
+        """ EventType """
+        self.event_type   = event_type
+
+        """ Frame ID in the capture logs """
+        self.frame_id     = int(frame_id)
+
+        """ Frame ID of the ACK message """
+        self.ack_frame_id = int(ack_frame_id) if ack_frame_id is not None else None
+
+        """ Time it took to receive the ACK """
+        self.ack_time     = float(ack_time) if ack_time is not None else None
+
+        """ Pointer to previous event (set in sort_and_process) """
+        self.prev = None
+
+        """ Pointer to next previous event (set in sort_and_process) """
+        self.next = None
+
+        """ Settings object """
+        self.settings = None
+
+    def __str__(self):
+        return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
+
+    def __repr__(self):
+        return '%s: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+
+    @staticmethod
+    def sort_and_process(events, settings):
+        """ Sort the events by time, and ensure every event has a dt from the first entry """
+        events.sort(key=lambda x: x.time)
+
+        for i,e in enumerate(events):
+            e.settings = settings
+            if i != 0:
+                e.prev = events[i-1]
+            if i != (len(events)-1):
+                e.next = events[i+1]
+
+            e.dt = e.time - events[0].time
+
+            if settings['timeUnit'] == 'secondsSinceStart':
+                e.time_label = '%4.3f'%e.dt.total_seconds()
+
+        if len(events) < 2:
+            return
+
+        # Make sure there are no huge gaps in the times.  If there are, reduce them
+        if 'maxTimeGap' in settings and float(settings['maxTimeGap']) > 0:
+            mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
+            for i,e in enumerate(events):
+                if i==0: continue
+                dt = events[i].time - events[i-1].time
+                if dt > mdt:
+
+                    for en in events[i:]:
+                        en.dt = en.dt - (dt-mdt)
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -142,6 +393,47 @@ class Event(SvgObject):
         # Position the label randomely a little
         label_pos = a_len/2.0 + random.randint(int(-1*a_len/4), int(a_len/4))
 
+        event_label = self.event_type.name
+        if self.ack_time is not None:
+            event_label += ' (%0.0f ms)'%self.ack_time
+
+        x_t = 0
+        time_text_obj = '''<text
+       id="{id}-time-label-text"
+       x="{x_t}"
+       y="{y_t}"
+       style="{text_style}"
+       xml:space="preserve"><tspan
+         style="{tspan_style}"
+         x="0"
+         y="0"
+         id="{id}-time-label-tspan"
+         sodipodi:role="line">{t}</tspan></text>'''.format(
+            id='time-%s'%re.sub('\W', '', str(self.time)),
+            x_t=x_t, y_t=0,
+            text_style=self.event_type.display_options.text_style(),
+            tspan_style=self.event_type.display_options.text_style(),
+            t=self.time_label,
+        )
+
+        if self.prev:
+            dt = self.time - self.prev.time
+            if dt < datetime.timedelta(seconds=self.settings['minLabelTimeGap']):
+                time_text_obj=''
+
+        def inject_capture_info(e):
+            """ Tiny lambda to include some additional info about the event in
+            the SVG.  This is done this way because I am still unsure of a good
+            way to do this, so a lambda gives me flexibility. """
+
+            return '''onclick="show_capture_info({{'time': new Date('{time}'), 'eventType': '{event_type}', 'frameId': {frame_id}, 'ackFrameId': {ack_frame_id}, 'ackTime': {ack_time}}})"'''.format(
+                    time=e.time,
+                    event_type=e.event_type.name,
+                    ack_time=e.ack_time,
+                    frame_id=e.frame_id,
+                    ack_frame_id=e.ack_frame_id,
+                )
+
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
@@ -152,160 +444,80 @@ class Event(SvgObject):
          inkscape:connector-curvature="0"
          id="{id}-arrow"
          d="m {x_a},{y_a} h {a_len}"
-         style="fill:none;stroke:{eventcolor};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
+         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
       <text
          id="{id}-label"
          x="{x_l}"
          y="{y_l}"
-         style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.25"
+         style="{text_style}"
          xml:space="preserve"><tspan
-           style="font-size:{fontsize}px;stroke-width:0.25"
+           style="{tspan_style}"
            x="{x_l}"
            y="{y_l}"
-           id="{id}-label-tspan">{name}</tspan></text>
-    </g>
-    <text
-       id="{id}-time-label-text"
-       x="{x_t}"
-       y="{y_t}"
-       style="font-style:normal;font-weight:normal;font-size:{fontsize}px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:{color};fill-opacity:1;stroke:none;stroke-width:0.25"
-       xml:space="preserve"><tspan
-         style="font-size:{fontsize}px;stroke-width:0.25"
-         x="{x_t}"
-         y="{y_t}"
-         id="{id}-time-label-tspan"
-         sodipodi:role="line">{t}</tspan></text>
-  </g>'''.format(
-            t=self.time_label,
+           id="{id}-label-tspan" {show_capture_info}>{event_label}</tspan></text>
+    </g>'''.format(
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
             x_l=label_pos, y_l=0,
-            x_t=0, y_t=0,
+            time=self.time, show_capture_info=inject_capture_info(self),
             id='time-%s'%re.sub('\W', '', str(self.time)),
-            fontsize=self.display_options.fontsize,
-            color=self.event_style.color,
-            eventcolor=self.event_style.color,
-            name=self.event_type,
+            text_style=self.event_type.display_options.text_style(),
+            tspan_style=self.event_type.display_options.text_style(),
+            event_color=self.event_type.display_options.color,
+            event_label=event_label,
+            time_text_obj=time_text_obj
         )
+        if time_text_obj:
+            svg += '\n    ' + time_text_obj + '\n'
+        svg += '  </g>'
 
         return svg
-
-class EventStyle(object):
-    def __init__(self, event_type, color):
-        self.event_type = event_type
-        self.color      = color
-
-    def __repr__(self):
-        return '%s(%s)'%(self.event_type, self.color)
 
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
-    def __init__(self, template, systems, events, event_styles, doc_info, settings):
+    def __init__(self, template, hosts, events, doc_info, settings, inkscape=False):
         self.template    = template
-        self.systems     = systems
+        self.hosts       = hosts
         self.events      = events
         self.doc_info    = doc_info
         self.settings    = settings
+        self.inkscape    = inkscape
 
     def generate(self):
         """ Generate the SVG """
 
         # First we have to position everything
-        svg_systems = ''
-        for i, s in enumerate(self.systems):
-            s.display_options.x = self.settings['systemSpacing']*i + self.settings['timeMarginLeft']
-            s.display_options.y = 0
-            s.display_options.page_height = self.doc_info['height']
-            s.compile()
-            svg_systems = svg_systems + s.to_svg()
+        svg_hosts = ''
+        for i, h in enumerate(self.hosts):
+            h.display_options.x = self.settings['hostSpacing']*i + self.settings['timeMarginLeft']
+            h.display_options.y = 0
+            h.last_event = next((e for e in reversed(self.events) if e.src==h or e.dst==h), None)
+            h.compile(settings=self.settings)
+            svg_hosts = svg_hosts + h.to_svg()
 
         events_svg = ''
         for i, e in enumerate(self.events):
             e.display_options.x = self.settings['timeMarginLeft']
-            e.display_options.y = int(float(e.time - self.events[0].time) * self.settings['timeSpacing'])
+            e.display_options.y = int(e.dt.total_seconds() * self.settings['timeSpacing'])
             e.compile()
             events_svg = events_svg + e.to_svg()
 
-        outp = re.sub('{{systems}}',      svg_systems, self.template)
-        outp = re.sub('{{time-left}}',    str(0), outp)
-        outp = re.sub('{{time-top}}',     str(self.systems[0].display_options.height + 10), outp)
-        outp = re.sub('{{events}}',  events_svg, outp)
+        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings['timeSpacing']) + 20
+        page_width = len(self.hosts)*self.settings['hostSpacing'] + self.settings['timeMarginLeft'] + self.hosts[len(self.hosts)-1].display_options.width
+
+        outp = re.sub('{{hosts}}',       svg_hosts, self.template)
+        outp = re.sub('{{time-left}}',   str(0), outp)
+        outp = re.sub('{{time-top}}',    str(self.hosts[0].display_options.height + 10), outp)
+        outp = re.sub('{{events}}',      events_svg, outp)
+        outp = re.sub('{{page_width}}',  str(page_width), outp)
+        outp = re.sub('{{page_height}}', str(page_height), outp)
+
+        if not self.inkscape:
+            outp = re.sub('inkscape:[a-z-]+=".*?"\s*', '', outp)
+            outp = re.sub('sodipodi:[a-z-]+=".*?"\s*', '', outp)
 
         return outp
 
-def read_config(filename):
-    with open(filename) as json_file:
-        data = json.load(json_file)
-
-    # Maybe write something later dst automatically load system objects.  See https://github.com/kheaactua/vim-managecolor/blob/master/lib/cmds.py the CSData.dict_to_obj and stuff
-    systems = []
-    for s in data['systems']:
-        systems.append(System(s['id'], s['name'], s['ip'], s['sort_nudge']))
-
-    # Sort the list
-    systems.sort(key=lambda x: x.sort_nudge)
-
-    event_style = {}
-    for e in data['eventTypes']:
-        event_style[e['eventType']] = EventStyle(event_type=e['eventType'], color=e['color'])
-
-    return systems, event_style, data["settings"]
-
-def read_data(filename, systems, event_styles, settings):
-    csv.register_dialect('eventStyle', delimiter = '\t', skipinitialspace=True)
-
-    data = []
-    with open(filename, 'r') as csv_file:
-        reader = csv.reader(csv_file, dialect='eventStyle')
-        for row in reader:
-            if len(row) < 4:
-                continue
-            if re.match('^\s*#', row[0]):
-                continue
-            src = next(s for s in systems if s.id == row[1])
-            dst = next(s for s in systems if s.id == row[2])
-            sty = event_styles[row[3]] if row[3] in event_styles else None
-            data.append(Event(time=row[0], src=src, dst=dst, event_type=row[3], event_style=sty))
-
-    # Make sure there are no huge gaps in the times.  If there are, reduce them
-    for i,e in enumerate(data):
-        if i==0: continue
-        dt = e.time - data[i-1].time
-        if dt > settings['maxTimeGap']:
-            for en in data[i:]:
-                en.time = en.time-(dt-settings['maxTimeGap'])
-
-    return data
-
-def read_template(filename):
-    """ Import our template, and read some properties from it """
-    with open(filename, 'r') as f: contents=f.read()
-
-    # Determine some properties, get the svg tag
-    tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
-    props = re.findall(r'\b(?P<attr>\w+)=\"(?P<val>.*?)\"', tag.group(0), re.MULTILINE)
-    info = {}
-    for m in props:
-        if 'width' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['width'] = float(units.group('val'))
-            info['unit']  = units.group('unit')
-        elif 'height' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['height'] = float(units.group('val'))
-
-    return contents, info
-
-def filter_systems(systems, event_data):
-    """ Remove systems that aren't involved in any events """
-    system_copy = systems.copy()
-    for s in system_copy:
-        found = False
-        for e in event_data:
-            if s == e.src or s == e.dst:
-                found = True
-                break
-        if not found:
-            systems.remove(s)
+# vim: sw=4 ts=4 sts=0 expandtab ft=python ffs=unix :
