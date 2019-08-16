@@ -23,6 +23,15 @@ Note that the SVG events currently have a `onclick` action that calls a function
 
 Two files are required, a `config` file and a `data` file.  See the samples for example.
 
+The values in the `settings` block are defined as:
+
+- `hostSpacing`: Spacing (in display units) between the start of every host timeline
+- `timeMarginLeft`: Left marking spacing (in display units)
+- `timeSpacing`: Multiplier (in display units) for vertical spacing of a time unit.  _e.g._ event B happens `x` seconds from the start, so place it at `x * timeSpacing` units down the page
+- `maxTimeGap`: The maximum allowable space (in seconds) between two events.  Subsequent events with a larger spacing than this will have their spacing collapsed to this value.  The goal of this is to have high resolution time lines without gigantic empty vertical gaps.
+- `minLabelTimeGap`: The minimum amount of time between two events for a time label to appear.  The goal of this is to remove overlapping time lables.  _e.g._ If events `A` and `B` occur within 0.005 s, do not show a time label for event `B`
+- `timeUnit`: Display style of the time label, only supported value currently is `secondsSinceStart`
+
 ## Run
 
 To generate a SVG in one command, run
