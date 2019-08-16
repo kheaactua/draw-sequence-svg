@@ -325,7 +325,7 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             request_frame = int(p['http'].request_in)
             e = next((e for e in events if e.frame_id == request_frame), None)
             if e:
-                e.ack_time = float(p['tcp'].time_relative)
+                e.ack_time = float(p['http'].time)
                 e.ack_frame_id = int(p.number)
             else:
                 if verbose:

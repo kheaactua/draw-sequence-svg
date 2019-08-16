@@ -50,7 +50,7 @@ def main():
         metavar='TEMPLATE_FILE',
         dest='template',
         action='store',
-        default='data/template.svg',
+        required=False,
         type=ld.argparse_file_exists,
         help='Template SVG file, required if generating an SVG'
     )
