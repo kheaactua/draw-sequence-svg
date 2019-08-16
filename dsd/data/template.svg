@@ -10,6 +10,15 @@
    viewBox="0 0 {{page_width}} {{page_height}}"
    width="{{page_width}}mm"
    height="{{page_height}}mm">
+  <script type="text/javascript">
+// <![CDATA[
+    function show_capture_info(e)
+    {
+        window.alert(JSON.stringify(e));
+        <!-- 'time=' + e.time + ', type=' + e.eventType + ', sendFrame='"2019-08-08 15:20:07.899711" event-type="CDRtype1" send-frame="10861" ack-frame="10862" ack-time="44.164221" />'); -->
+    }
+// ]]>
+  </script>
   <defs
      id="defs2">
     <marker

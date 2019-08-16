@@ -11,10 +11,7 @@ Contains three commands:
 
 ## Misc.
 
-Note that the SVG events will contain a `<info>` tag that contains additional
-information, such as the packet ID and the ACK package ID.  This is not
-standard, but is a helpful way (for now) of adding additional information into
-the diagrams.
+Note that the SVG events currently have a `onclick` action that calls a function to provide the user with additional information on the event, such as the packet ID and the ACK package ID.  This implementation is not yet, but it exists to be improved upon in the near future.
 
 ## Limitations
 
@@ -28,14 +25,33 @@ Two files are required, a `config` file and a `data` file.  See the samples for 
 
 ## Run
 
+To generate a SVG in one command, run
+
 ```sh
 queryCaptureLogs                                        \
-   --config samples/cample1/config.json                 \
+   --config samples/sample1/config.json                 \
    --capture-file data/LoggingService_processing.pcapng \
    --hosts App2A Admin2A MIS2A                          \
    --template template.svg                              \
    --write-events /tmp/events.csv                       \
    --output-svg   diag.svg
+```
+
+Or, you can seperate this into two commands,
+```sh
+# Fetch the event data from the capture log
+queryCaptureLogs                                        \
+   --config samples/sample1/config.json                 \
+   --capture-file data/LoggingService_processing.pcapng \
+   --hosts App2A Admin2A MIS2A                          \
+   --write-events /tmp/events.csv
+
+# Generate the SVG
+generateSequenceDiag                    \
+   --config samples/sample1/config.json \
+   --input /tmp/events.csv              \
+   --template template.svg              \
+   --output   diag.svg
 ```
 
 # Notes

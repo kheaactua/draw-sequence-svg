@@ -421,10 +421,22 @@ class Event(SvgObject):
             if dt < datetime.timedelta(seconds=self.settings['minLabelTimeGap']):
                 time_text_obj=''
 
+        def inject_capture_info(e):
+            """ Tiny lambda to include some additional info about the event in
+            the SVG.  This is done this way because I am still unsure of a good
+            way to do this, so a lambda gives me flexibility. """
+
+            return '''onclick="show_capture_info({{'time': new Date('{time}'), 'eventType': '{event_type}', 'frameId': {frame_id}, 'ackFrameId': {ack_frame_id}, 'ackTime': {ack_time}}})"'''.format(
+                    time=e.time,
+                    event_type=e.event_type.name,
+                    ack_time=e.ack_time,
+                    frame_id=e.frame_id,
+                    ack_frame_id=e.ack_frame_id,
+                )
+
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
-    <capture:info event-time="{time}" event-type="{event_type}" send-frame="{frame_id}" ack-frame="{ack_frame_id}" ack-time="{ack_time}" />
     <g
        id="{id}-event"
        transform="translate({x_e},{y_e})">
@@ -432,7 +444,7 @@ class Event(SvgObject):
          inkscape:connector-curvature="0"
          id="{id}-arrow"
          d="m {x_a},{y_a} h {a_len}"
-         style="fill:none;stroke:{eventcolor};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
+         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
       <text
          id="{id}-label"
          x="{x_l}"
@@ -442,19 +454,18 @@ class Event(SvgObject):
            style="{tspan_style}"
            x="{x_l}"
            y="{y_l}"
-           id="{id}-label-tspan">{event_label}</tspan></text>
+           id="{id}-label-tspan" {show_capture_info}>{event_label}</tspan></text>
     </g>'''.format(
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
             x_l=label_pos, y_l=0,
-            time=self.time, event_type=self.event_type.name, ack_time=self.ack_time,
+            time=self.time, show_capture_info=inject_capture_info(self),
             id='time-%s'%re.sub('\W', '', str(self.time)),
             text_style=self.event_type.display_options.text_style(),
             tspan_style=self.event_type.display_options.text_style(),
-            eventcolor=self.event_type.display_options.color,
+            event_color=self.event_type.display_options.color,
             event_label=event_label,
-            frame_id=self.frame_id, ack_frame_id=self.ack_frame_id,
             time_text_obj=time_text_obj
         )
         if time_text_obj:
