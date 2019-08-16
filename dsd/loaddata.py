@@ -70,6 +70,8 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
             ack_time = None
             if len(row) > 3:
                 ack_time = row[4]
+                if not len(ack_time):
+                    ack_time = None
 
             frame_id = None
             if len(row) > 4:
@@ -78,6 +80,8 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
             ack_frame_id = None
             if len(row) > 5:
                 ack_frame_id = row[6]
+                if not len(ack_frame_id):
+                    ack_frame_id = None
 
             data.append(so.Event(
                 time         = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
@@ -115,18 +119,23 @@ def read_template(filename):
     """ Import our template, and read some properties from it """
     with open(filename, 'r') as f: contents=f.read()
 
-    # Determine some properties, get the svg tag
-    tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
-    props = re.findall(r'\b(?P<attr>\w+)=\"(?P<val>.*?)\"', tag.group(0), re.MULTILINE)
-    info = {}
-    for m in props:
-        if 'width' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['width'] = float(units.group('val'))
-            info['unit']  = units.group('unit')
-        elif 'height' == m[0]:
-            units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-            info['height'] = float(units.group('val'))
+    # # Determine some properties, get the svg tag
+    # tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
+    # props = re.findall(r'\b(?P<attr>\w+)=\"(?P<val>.*?)\"', tag.group(0), re.MULTILINE)
+    # info = {}
+    # for m in props:
+    #     if 'width' == m[0]:
+    #         units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
+    #         info['width'] = float(units.group('val'))
+    #         info['unit']  = units.group('unit')
+    #     elif 'height' == m[0]:
+    #         units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
+    #         if units:
+    #             info['height'] = float(units.group('val'))
+
+    # We used to use info, but there's no need for it any more it seems.
+    # Leaving the commented code just in case it is required in the near future
+    info={}
 
     return contents, info
 
@@ -177,6 +186,13 @@ def get_arg_parse(*args, **kwargs):
         dest='verbose',
         action='store_true',
         help='Increase verbosity',
+    )
+
+    parser.add_argument(
+        '--inkscape',
+        dest='inkscape',
+        action='store_true',
+        help='Do not filter out inkscape tags/attributes (helpful for debugging in Inkscape, but renders the SVG non-standard)',
     )
 
     return parser

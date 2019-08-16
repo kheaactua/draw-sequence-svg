@@ -34,7 +34,7 @@ def main():
         print('No events were provided.  Aborting', file=sys.stderr)
         sys.exit(1)
 
-    diag = so.Diagram(template=template, hosts=hosts, events=event_data, doc_info=info, settings=settings)
+    diag = so.Diagram(template=template, hosts=hosts, events=event_data, doc_info=info, settings=settings, inkscape=args.inkscape)
     contents = diag.generate()
 
     with open(args.output, 'w') as f: f.write(contents)

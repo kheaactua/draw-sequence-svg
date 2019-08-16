@@ -208,6 +208,11 @@ class Host(SvgObject):
     def to_svg(self):
         """ Serialize to an XML block """
 
+        # Name
+        y_t=self.display_options.height * (3/7)
+        # IP
+        y_t2=self.display_options.height * (6/7)
+
         svg = '''<g
        transform="translate({x_g},{y_g})"
        id="host-{host}">
@@ -237,7 +242,7 @@ class Host(SvgObject):
            id="host-{host}-label-name">{host_name}</tspan><tspan
            sodipodi:role="line"
            x="{x_t}"
-           y="{y_t}"
+           y="{y_t2}"
            style="text-align:center;text-anchor:middle;stroke-width:0.26px"
            id="host-{host}-label-ip">{ip}</tspan></text>
     </g>'''.format(
@@ -253,7 +258,7 @@ class Host(SvgObject):
             fontColor=self.display_options.fontColor,
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_r=0, y_r=0,
-            x_t=self.display_options.width/2, y_t=self.display_options.height/2,
+            x_t=self.display_options.width/2, y_t=y_t, y_t2=y_t2,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
             lifeline_length=self.display_options.lifeline_length
         )
@@ -390,7 +395,7 @@ class Event(SvgObject):
 
         event_label = self.event_type.name
         if self.ack_time is not None:
-            event_label += ' (%2.0f ms)'%self.ack_time
+            event_label += ' (%0.0f ms)'%self.ack_time
 
         x_t = 0
         time_text_obj = '''<text
@@ -438,10 +443,7 @@ class Event(SvgObject):
            x="{x_l}"
            y="{y_l}"
            id="{id}-label-tspan">{event_label}</tspan></text>
-    </g>
-    {time_text_obj}
-
-  </g>'''.format(
+    </g>'''.format(
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
@@ -455,18 +457,22 @@ class Event(SvgObject):
             frame_id=self.frame_id, ack_frame_id=self.ack_frame_id,
             time_text_obj=time_text_obj
         )
+        if time_text_obj:
+            svg += '\n    ' + time_text_obj + '\n'
+        svg += '  </g>'
 
         return svg
 
 class Diagram(object):
     """ Class to build our diagram.  Collects all the data, and then generates an SVG file from a template  """
 
-    def __init__(self, template, hosts, events, doc_info, settings):
+    def __init__(self, template, hosts, events, doc_info, settings, inkscape=False):
         self.template    = template
         self.hosts       = hosts
         self.events      = events
         self.doc_info    = doc_info
         self.settings    = settings
+        self.inkscape    = inkscape
 
     def generate(self):
         """ Generate the SVG """
@@ -487,10 +493,19 @@ class Diagram(object):
             e.compile()
             events_svg = events_svg + e.to_svg()
 
-        outp = re.sub('{{hosts}}',     svg_hosts, self.template)
-        outp = re.sub('{{time-left}}', str(0), outp)
-        outp = re.sub('{{time-top}}',  str(self.hosts[0].display_options.height + 10), outp)
-        outp = re.sub('{{events}}',    events_svg, outp)
+        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings['timeSpacing']) + 20
+        page_width = len(self.hosts)*self.settings['hostSpacing'] + self.settings['timeMarginLeft'] + self.hosts[len(self.hosts)-1].display_options.width
+
+        outp = re.sub('{{hosts}}',       svg_hosts, self.template)
+        outp = re.sub('{{time-left}}',   str(0), outp)
+        outp = re.sub('{{time-top}}',    str(self.hosts[0].display_options.height + 10), outp)
+        outp = re.sub('{{events}}',      events_svg, outp)
+        outp = re.sub('{{page_width}}',  str(page_width), outp)
+        outp = re.sub('{{page_height}}', str(page_height), outp)
+
+        if not self.inkscape:
+            outp = re.sub('inkscape:[a-z-]+=".*?"\s*', '', outp)
+            outp = re.sub('sodipodi:[a-z-]+=".*?"\s*', '', outp)
 
         return outp
 
