@@ -158,6 +158,10 @@ def match_hosts(all_hosts, user_hosts):
         h = so.Host.match(hosts=all_hosts, name_or_ip=hname)
         if h is not None:
             hosts.append(h)
+
+    # Ensure the list is still sorted
+    hosts.sort(key=lambda x: x.sort_nudge)
+
     return hosts
 
 def argparse_file_exists(f):
