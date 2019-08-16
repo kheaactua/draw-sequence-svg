@@ -15,8 +15,13 @@
     function show_capture_info(e)
     {
         window.alert(JSON.stringify(e));
-        <!-- 'time=' + e.time + ', type=' + e.eventType + ', sendFrame='"2019-08-08 15:20:07.899711" event-type="CDRtype1" send-frame="10861" ack-frame="10862" ack-time="44.164221" />'); -->
     }
+
+    function show_host_info(desc)
+    {
+        window.alert(desc);
+    }
+
 // ]]>
   </script>
   <defs
