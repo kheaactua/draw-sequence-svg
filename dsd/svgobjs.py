@@ -212,7 +212,7 @@ class Host(SvgObject):
 
         self.display_options.abs_center = self.display_options.x + (self.display_options.width/2.0)
         if self.last_event:
-            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings['timeSpacing'])  + self.display_options.height
+            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings.time_spacing)  + self.display_options.height
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -322,6 +322,13 @@ class EventType(object):
     def __repr__(self):
         return '%s(%s)'%(self.name, self.display_options.color)
 
+class EventAckSpeed(Enum):
+    """ ENUM for how we consider how fast an Event is """
+
+    NORMAL    = 1
+    SLOW      = 2
+    VERY_SLOW = 3
+
 class Event(SvgObject):
     """ Object representing an event (StartCall, EndCall, etc.) with enough
     data to include in a timing diagram """
@@ -332,12 +339,16 @@ class Event(SvgObject):
         src: Host,
         dst: Host,
         event_type: EventType,
+        settings: None,
         time_label=None,
         frame_id: int=None,
         ack_time: int=None,
         ack_frame_id: int=None
     ):
         super().__init__()
+
+        """ Settings object """
+        self.settings = settings
 
         """ Time of the event """
         self.time         = time
@@ -361,6 +372,9 @@ class Event(SvgObject):
         """ Frame ID of the ACK message """
         self.ack_frame_id = int(ack_frame_id) if ack_frame_id is not None else None
 
+        """ The "speed type" we consider the event to have had, set when ack_time is set """
+        self.event_ack_speed = EventAckSpeed.NORMAL
+
         """ Time it took to receive the ACK """
         self.ack_time     = float(ack_time) if ack_time is not None else None
 
@@ -370,14 +384,26 @@ class Event(SvgObject):
         """ Pointer to next previous event (set in sort_and_process) """
         self.next = None
 
-        """ Settings object """
-        self.settings = None
-
     def __str__(self):
         return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
 
     def __repr__(self):
         return '%s: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+
+    @property
+    def ack_time(self):
+        return self._ack_time
+
+    @ack_time.setter
+    def ack_time(self, value):
+        self._ack_time = float(value)
+        if self.settings:
+            if self.ack_time > self.settings.ack_threshold_very_slow:
+                self.event_ack_speed = EventAckSpeed.VERY_SLOW
+            elif self.ack_time > self.settings.ack_threshold_slow:
+                self.event_ack_speed = EventAckSpeed.SLOW
+            else:
+                self.event_ack_speed = EventAckSpeed.NORMAL
 
     @staticmethod
     def sort_and_process(events, settings):
@@ -393,15 +419,15 @@ class Event(SvgObject):
 
             e.dt = e.time - events[0].time
 
-            if settings['timeUnit'] == 'secondsSinceStart':
+            if settings.time_unit == 'secondsSinceStart':
                 e.time_label = '%4.3f'%e.dt.total_seconds()
 
         if len(events) < 2:
             return
 
         # Make sure there are no huge gaps in the times.  If there are, reduce them
-        if 'maxTimeGap' in settings and float(settings['maxTimeGap']) > 0:
-            mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
+        if float(settings.max_time_gap) > 0:
+            mdt = datetime.timedelta(seconds=settings.max_time_gap)
             for i,e in enumerate(events):
                 if i==0: continue
                 dt = events[i].time - events[i-1].time
@@ -424,8 +450,15 @@ class Event(SvgObject):
         label_pos = a_len/2.0 + random.randint(int(-1*a_len/4), int(a_len/4))
 
         event_label = self.event_type.name
-        if self.ack_time is not None:
-            event_label += ' (%0.0f ms)'%self.ack_time
+        if type(self.ack_time) is float:
+            event_label += ' ('
+            if self.event_ack_speed == EventAckSpeed.VERY_SLOW:
+                event_label += '<tspan style="fill:{color};">{ack_time:0.0f}</span>'.format(color='#ff0000', ack_time=self.ack_time)
+            elif self.event_ack_speed == EventAckSpeed.SLOW:
+                event_label += '<tspan style="fill:{color};">{ack_time:0.0f}</span>'.format(color='#ff00ff', ack_time=self.ack_time)
+            else:
+                event_label += '%0.0f'%self.ack_time
+            event_label += ' ms)'
 
         x_t = 0
         time_text_obj = '''<text
@@ -448,7 +481,7 @@ class Event(SvgObject):
 
         if self.prev:
             dt = self.time - self.prev.time
-            if dt < datetime.timedelta(seconds=self.settings['minLabelTimeGap']):
+            if dt < datetime.timedelta(seconds=self.settings.min_label_time_gap):
                 time_text_obj=''
 
         def inject_capture_info(e):
@@ -464,6 +497,16 @@ class Event(SvgObject):
                     ack_frame_id=e.ack_frame_id,
                 )
 
+        def arrow_id(e):
+            """ Select the proper arrow ID, these are defined in the template """
+            if e.event_ack_speed == EventAckSpeed.VERY_SLOW:
+                return 'Arrow2Mend'
+            elif e.event_ack_speed == EventAckSpeed.SLOW:
+                return 'Arrow2MendX'
+            else:
+                return 'Arrow2MendR'
+
+
         svg = '''<g
      id="{id}-event-group"
      transform="translate({x_g},{y_g})">
@@ -474,7 +517,7 @@ class Event(SvgObject):
          inkscape:connector-curvature="0"
          id="{id}-arrow"
          d="m {x_a},{y_a} h {a_len}"
-         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
+         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#{arrow_id})" />
       <text
          id="{id}-label"
          x="{x_l}"
@@ -492,6 +535,7 @@ class Event(SvgObject):
             x_l=label_pos, y_l=0,
             time=self.time, show_capture_info=inject_capture_info(self),
             id='time-%s'%re.sub('\W', '', str(self.time)),
+            arrow_id=arrow_id(self),
             text_style=self.event_type.display_options.text_style(),
             tspan_style=self.event_type.display_options.text_style(),
             event_color=self.event_type.display_options.color,
@@ -521,7 +565,7 @@ class Diagram(object):
         # First we have to position everything
         svg_hosts = ''
         for i, h in enumerate(self.hosts):
-            h.display_options.x = self.settings['hostSpacing']*i + self.settings['timeMarginLeft']
+            h.display_options.x = self.settings.host_spacing*i + self.settings.time_margin_left
             h.display_options.y = 0
             h.last_event = next((e for e in reversed(self.events) if e.src==h or e.dst==h), None)
             h.compile(settings=self.settings)
@@ -529,13 +573,13 @@ class Diagram(object):
 
         events_svg = ''
         for i, e in enumerate(self.events):
-            e.display_options.x = self.settings['timeMarginLeft']
-            e.display_options.y = int(e.dt.total_seconds() * self.settings['timeSpacing'])
+            e.display_options.x = self.settings.time_margin_left
+            e.display_options.y = int(e.dt.total_seconds() * self.settings.time_spacing)
             e.compile()
             events_svg = events_svg + e.to_svg()
 
-        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings['timeSpacing']) + 20
-        page_width = len(self.hosts)*self.settings['hostSpacing'] + self.settings['timeMarginLeft'] + self.hosts[len(self.hosts)-1].display_options.width
+        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings.time_spacing) + 20
+        page_width = len(self.hosts)*self.settings.host_spacing + self.settings.time_margin_left + self.hosts[len(self.hosts)-1].display_options.width
 
         outp = re.sub('{{hosts}}',       svg_hosts, self.template)
         outp = re.sub('{{time-left}}',   str(0), outp)

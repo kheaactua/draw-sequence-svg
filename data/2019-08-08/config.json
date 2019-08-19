@@ -206,6 +206,8 @@
         "timeSpacing": 1000,
         "maxTimeGap": 0.02,
         "minLabelTimeGap": 0.007,
-        "timeUnit": "secondsSinceStart"
+        "timeUnit": "secondsSinceStart",
+        "ackThresholdSlow": 0.002,
+        "ackThresholdVerySlow": 0.010
     }
 }
