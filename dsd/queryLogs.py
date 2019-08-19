@@ -50,7 +50,7 @@ def main():
         metavar='TEMPLATE_FILE',
         dest='template',
         action='store',
-        default='data/template.svg',
+        required=False,
         type=ld.argparse_file_exists,
         help='Template SVG file, required if generating an SVG'
     )
@@ -75,6 +75,10 @@ def main():
     )
 
     ld.filter_hosts(hosts=hosts, events=events)
+
+    if not len(events):
+        print('No events were found for the selected hosts: %s'%(', '.join(hosts) if len(hosts) else '[no matched hosts]'))
+        return
 
     if args.events_outfile:
         ld.write_events(filename=args.events_outfile, events=events)

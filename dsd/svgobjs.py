@@ -132,30 +132,31 @@ class HostType(Enum):
     @staticmethod
     def name_to_enum(name):
         if 'APP' == name:
-            return self.APP
+            return HostType.APP
         elif 'MIS' == name:
-            return self.GA
+            return HostType.GA
         elif 'GA' == name:
-            return self.GA
+            return HostType.GA
         elif 'REC' == name:
-            return self.REC
+            return HostType.REC
         elif 'ADMIN' == name:
-            return self.ADMIN
+            return HostType.ADMIN
         elif 'ELM' == name:
-            return self.ELM
+            return HostType.ELM
         else:
             raise ValueError('Cannot interpret host type %s'%name)
 
 class Host(SvgObject):
     """ Host (App, Admin, etc) system """
 
-    def __init__(self, id: str, name: str, ip: str, sort_nudge: int=100, host_type=HostType.APP, display_options: DisplayOptions=None):
+    def __init__(self, id: str, name: str, ip: str, host_type: HostType, sort_nudge: int=100, display_options: DisplayOptions=None, description: str=None):
         super(Host, self).__init__()
-        self.id         = id
-        self.name       = name
-        self.ip         = ip
-        self.sort_nudge = sort_nudge
-        self.host_type  = host_type
+        self.id          = id
+        self.name        = name
+        self.ip          = ip
+        self.sort_nudge  = sort_nudge
+        self.host_type   = host_type
+        self.description = description
 
         self.display_options.width  = 40
         self.display_options.height = 15
@@ -175,6 +176,14 @@ class Host(SvgObject):
         if 'displayOptions' in data:
             display_options = DisplayOptions.from_json(data['displayOptions'])
             del data['displayOptions']
+
+        # Adjust the HostType
+        data['host_type'] = HostType.name_to_enum(data['hostType'])
+        del data['hostType']
+
+        data['sort_nudge'] = data['sortNudge']
+        del data['sortNudge']
+
         host = cls(**data, display_options=display_options)
         return host
 
@@ -213,6 +222,25 @@ class Host(SvgObject):
         # IP
         y_t2=self.display_options.height * (6/7)
 
+        stroke_width = 0.1
+        if self.host_type is HostType.APP:
+            stroke_width = 0.6
+
+        rect_style = "fill:{background_color};stroke-width:{stroke_width}px;stroke-miterlimit:4;stroke-dasharray:none;stroke:{stroke_color};stroke-opacity:1".format(
+            background_color=self.display_options.background_color,
+            stroke_width=stroke_width,
+            stroke_color='#000000',
+        )
+
+        def escape(s):
+            s = s.replace("'", r"\\'")
+            return s
+
+        description_action = ''
+        if type(self.description) is str and len(self.description):
+            description_action=' onclick="show_host_info(\'{description}\')"'.format(description=escape(self.description))
+
+
         svg = '''<g
        transform="translate({x_g},{y_g})"
        id="host-{host}">
@@ -222,7 +250,8 @@ class Host(SvgObject):
          height="{height}"
          x="{x_r}"
          y="{y_r}"
-         style="fill:{background_color};stroke-width:0.26px" />
+         style="{rect_style}"
+         {description_action} />
       <path
          style="fill:none;stroke:#000000;stroke-width:0.20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:0.60,0.20;stroke-dashoffset:0"
          d="m {x_l},{y_l} v {lifeline_length}"
@@ -250,8 +279,9 @@ class Host(SvgObject):
             host_name=self.name,
             ip=self.ip,
             width=self.display_options.width,
+            rect_style=rect_style,
+            description_action=description_action,
             height=self.display_options.height,
-            background_color=self.display_options.background_color,
             text_style=self.display_options.text_style(),
             tspan_style=self.display_options.tspan_style(),
             fontSize=self.display_options.fontSize,

@@ -4,8 +4,8 @@
             "id": "App1A",
             "name": "App2A",
             "ip": "10.7.156.75",
-            "host_type": "APP",
-            "sort_nudge": 1,
+            "hostType": "APP",
+            "sortNudge": 1,
             "displayOptions": {
                 "backgroundColor": "#297373"
             }
@@ -14,8 +14,8 @@
             "id": "App2A",
             "name": "App2A",
             "ip": "10.12.10.75",
-            "host_type": "APP",
-            "sort_nudge": 1,
+            "hostType": "APP",
+            "sortNudge": 1,
             "displayOptions": {
                 "backgroundColor": "#297373"
             }
@@ -24,8 +24,8 @@
             "id": "Admin2A",
             "name": "Admin2A",
             "ip": "10.12.10.68",
-            "host_type": "ADMIN",
-            "sort_nudge": 2,
+            "hostType": "ADMIN",
+            "sortNudge": 2,
             "displayOptions": {
                 "backgroundColor": "#0197F6"
             }
@@ -34,112 +34,38 @@
             "id": "MIS2A",
             "name": "MIS2A",
             "ip": "10.12.10.84",
-            "host_type": "MIS",
-            "sort_nudge": 10
+            "hostType": "MIS",
+            "sortNudge": 10
         },
         {
             "id": "ELM1A",
             "name": "ELM1A",
             "ip": "10.7.156.68",
-            "host_type": "ELM",
-            "sort_nudge": 3
+            "hostType": "ELM",
+            "sortNudge": 3
         },
         {
             "id": "REC1A",
             "name": "REC1A",
             "ip": "10.7.156.95",
-            "host_type": "REC",
-            "sort_nudge": 11
+            "hostType": "REC",
+            "sortNudge": 11
         },
         {
             "id": "MIS1A",
             "name": "MIS1A",
             "ip": "10.7.156.92",
-            "host_type": "MIS",
-            "sort_nudge": 10
+            "hostType": "MIS",
+            "sortNudge": 10
         },
         {
             "id": "GL1A",
             "name": "GL1A",
             "ip": "10.7.156.86",
-            "host_type": "GA",
-            "sort_nudge": 6
-        },
-        {
-            "id": "PVApp",
-            "name": "PV-App",
-            "ip": "10.10.10.103",
-            "host_type": "APP",
-            "sort_nudge": 1,
-            "displayOptions": {
-                "backgroundColor": "#ff8080"
-            }
-        },
-        {
-            "id": "PVAdmin",
-            "name": "PV-Admin",
-            "ip": "10.10.10.100",
-            "host_type": "ADMIN",
-            "sort_nudge": 3,
-            "displayOptions": {
-                "backgroundColor": "#668000",
-                "fontColor": "#ffffff"
-            }
-        },
-        {
-            "id": "PVRedAB",
-            "name": "RedAB",
-            "ip": "10.10.5.100",
-            "host_type": "ADMIN",
-            "sort_nudge": 4,
-            "displayOptions": {
-                "backgroundColor": "#d45500",
-                "fontColor": "#ffffff"
-            }
-        },
-        {
-            "id": "PVAdmin7",
-            "name": "Admin-Debug",
-            "ip": "10.10.7.100",
-            "host_type": "ADMIN",
-            "sort_nudge": 5,
-            "displayOptions": {
-                "backgroundColor": "#ff0073",
-                "fontColor": "#ffffff"
-            }
-        },
-        {
-            "id": "PVSierra",
-            "name": "Sierra",
-            "ip": "10.10.8.100",
-            "host_type": "ADMIN",
-            "sort_nudge": 20,
-            "displayOptions": {
-                "backgroundColor": "#ffb380"
-            }
-        },
-        {
-            "id": "PVatest",
-            "name": "a_test",
-            "ip": "10.10.5.181",
-            "host_type": "ADMIN",
-            "sort_nudge": 21,
-            "displayOptions": {
-                "backgroundColor": "#ffcc00"
-            }
-        },
-        {
-            "id": "PVVenom",
-            "name": "Venom",
-            "ip": "10.10.14.100",
-            "host_type": "ADMIN",
-            "sort_nudge": 22,
-            "displayOptions": {
-                "backgroundColor": "#000000",
-                "fontColor": "#ffffff"
-            }
+            "hostType": "GA",
+            "sortNudge": 6
         }
-    ],
+     ],
     "eventTypes": [
         {
             "eventType": "StartCall",
