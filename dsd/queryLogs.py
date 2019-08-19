@@ -62,8 +62,12 @@ def main():
     # Match the user entered hosts to the configured hosts
     hosts=ld.match_hosts(all_hosts, args.hosts)
 
-    if args.verbose:
-        print('Examining events %s between %s'%(', '.join(args.events), ', '.join([str(x) for x in hosts])))
+    if not len(hosts):
+        print('No matched hosts')
+        return
+    else:
+        if args.verbose:
+            print('Examining events between %s'%(' '.join([str(x) for x in hosts])))
 
     events = ld.query_logs(
         capture_filename=args.capture_filename,
@@ -74,11 +78,15 @@ def main():
         verbose=args.verbose
     )
 
+    # Filter out hosts not used in any events
     ld.filter_hosts(hosts=hosts, events=events)
 
     if not len(events):
         print('No events were found for the selected hosts: %s'%(', '.join(hosts) if len(hosts) else '[no matched hosts]'))
         return
+    else:
+        if args.verbose:
+            print('Examining %d events between hosts %s'%(len(events), ' '.join([str(x) for x in hosts])))
 
     if args.events_outfile:
         ld.write_events(filename=args.events_outfile, events=events)

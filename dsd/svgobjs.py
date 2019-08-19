@@ -196,7 +196,7 @@ class Host(SvgObject):
                 return h
             elif h.name.lower() == name_or_ip.lower():
                 return h
-            elif h.name.lower() == name_or_ip.lower():
+            elif h.ip.lower() == name_or_ip.lower():
                 return h
 
         return None
