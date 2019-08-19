@@ -76,6 +76,10 @@ def main():
 
     ld.filter_hosts(hosts=hosts, events=events)
 
+    if not len(events):
+        print('No events were found for the selected hosts: %s'%(', '.join(hosts) if len(hosts) else '[no matched hosts]'))
+        return
+
     if args.events_outfile:
         ld.write_events(filename=args.events_outfile, events=events)
 
