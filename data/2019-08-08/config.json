@@ -195,7 +195,7 @@
         "timeMarginLeft": 20,
         "timeSpacing": 1000,
         "maxTimeGap": 0.02,
-        "minLabelTimeGap": 0.005,
+        "minLabelTimeGap": 0.007,
         "timeUnit": "secondsSinceStart"
     }
 }
