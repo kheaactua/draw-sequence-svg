@@ -621,11 +621,11 @@ class Event(SvgObject):
         def arrow_id(e):
             """ Select the proper arrow ID, these are defined in the template """
             if e.event_ack_speed == EventAckSpeed.VERY_SLOW:
-                return 'Arrow2Mend'
+                return 'ArrowRightVerySlow'
             elif e.event_ack_speed == EventAckSpeed.SLOW:
-                return 'Arrow2MendX'
+                return 'ArrowRightSlow'
             else:
-                return 'Arrow2MendR'
+                return 'ArrowRightNormal'
 
 
         event_label = self.event_type.name

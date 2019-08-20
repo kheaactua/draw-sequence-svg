@@ -29,7 +29,7 @@
     <marker
        inkscape:isstock="true"
        style="overflow:visible;"
-       id="Arrow2MendR"
+       id="ArrowRightNormal"
        refX="0.0"
        refY="0.0"
        orient="auto"
@@ -43,7 +43,7 @@
     <marker
        inkscape:isstock="true"
        style="overflow:visible;"
-       id="Arrow2MendX"
+       id="ArrowRightSlow"
        refX="0.0"
        refY="0.0"
        orient="auto"
@@ -51,7 +51,7 @@
       <path
          transform="scale(0.6) rotate(180) translate(0,0)"
          d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
-         style="stroke-linejoin:round;stroke-opacity:1;fill-rule:evenodd;fill-opacity:1;stroke:#506b83;stroke-width:0.625;fill:#c87137"
+         style="stroke-linejoin:round;stroke-opacity:1;fill-rule:evenodd;fill-opacity:1;stroke:#c87137;stroke-width:0.625;fill:#c87137"
          id="path8002" />
     </marker>
     <marker
@@ -59,7 +59,7 @@
        orient="auto"
        refY="0.0"
        refX="0.0"
-       id="Arrow2Mend"
+       id="ArrowRightVerySlow"
        style="overflow:visible;"
        inkscape:isstock="true">
       <path
