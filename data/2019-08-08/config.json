@@ -207,7 +207,11 @@
         "maxTimeGap": 0.02,
         "minLabelTimeGap": 0.007,
         "timeUnit": "secondsSinceStart",
+        "ackThresholdFast": 0.001,
         "ackThresholdSlow": 0.002,
-        "ackThresholdVerySlow": 0.010
+        "ackThresholdSlowColor": "#d45500",
+        "ackThresholdVerySlow": 0.010,
+        "ackThresholdVerySlowColor": "#ff2a2a"
+
     }
 }

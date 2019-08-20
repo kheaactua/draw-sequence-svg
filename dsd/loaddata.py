@@ -32,8 +32,12 @@ class Settings(object):
             'timeUnit':         'secondsSinceStart',
 
             # Ack time thresholds
-            'ackThresholdSlow': 0.001, # s
-            'ackThresholdVery': 0.010, # s
+            'ackThresholdFast':     0.001, # s
+            'ackThresholdSlow':     0.001, # s
+            'ackThresholdVerySlow': 0.010, # s
+
+            # SVG output type
+            'svg_type':         so.SvgType.PLAIN
         }
 
         for k,v in defaults.items():
