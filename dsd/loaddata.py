@@ -13,22 +13,47 @@ import pyshark
 
 import dsd.svgobjs as so
 
+class Settings(object):
+    """ Config object to hold various settings """
+
+    def __init__(self, data):
+        for k,v in data.items():
+            setattr(self, so.JsonSerializatble.json2py_name(k), v)
+
+    @classmethod
+    def from_json(cls, data):
+        # Defaults on Settings (until it's its own object)
+        defaults = {
+            'hostSpacing':      60,   # mm
+            'timeMarginLeft':   20,   # mm
+            'timeSpacing':      25,   # s
+            'minLabelTimeGap':  0.01, # s
+            'maxTimeGap':       2,    # s
+            'timeUnit':         'secondsSinceStart',
+
+            # Ack time thresholds
+            'ackThresholdFast':     0.001, # s
+            'ackThresholdSlow':     0.001, # s
+            'ackThresholdVerySlow': 0.010, # s
+
+            # SVG output type
+            'svg_type':         so.SvgType.PLAIN
+        }
+
+        for k,v in defaults.items():
+            if k not in data:
+                data[k] = v
+
+        return cls(data=data)
+
 class ConfigFile(object):
     """ Object representing the config file """
 
     @classmethod
     def from_json(cls, data):
+        settings    = Settings.from_json(data['settings'])
         hosts       = list(map(so.Host.from_json,       data['hosts']))
-        event_types = list(map(so.EventType.from_json, data['eventTypes']))
-        settings    = data['settings']
-
-        # Defaults on Settings (until it's its own object)
-        if 'hostSpacing'     not in settings: settings['hostSpacing']     = 60
-        if 'timeMarginLeft'  not in settings: settings['timeMarginLeft']  = 20
-        if 'timeSpacing'     not in settings: settings['timeSpacing']     = 25
-        if 'minLabelTimeGap' not in settings: settings['minLabelTimeGap'] = 0.01
-        if 'maxTimeGap'      not in settings: settings['maxTimeGap']      = 2
-        if 'timeUnit'        not in settings: settings['timeUnit']        = 'secondsSinceStart'
+        event_types = list(map(so.EventType.from_json,  data['eventTypes']))
 
         return hosts, event_types, settings
 
@@ -83,7 +108,8 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
                 if not len(ack_frame_id):
                     ack_frame_id = None
 
-            data.append(so.Event(
+            e = so.Event(
+                settings     = settings,
                 time         = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'),
                 src          = src,
                 dst          = dst,
@@ -91,7 +117,8 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
                 ack_time     = ack_time,
                 frame_id     = frame_id,
                 ack_frame_id = ack_frame_id,
-            ))
+            )
+            data.append(e)
 
     so.Event.sort_and_process(events=data, settings=settings)
 

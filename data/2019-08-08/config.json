@@ -67,7 +67,7 @@
         },
         {
             "id": "GodzillaApp",
-            "name": "Godzilla App",
+            "name": "Godzilla",
             "ip": "10.10.10.103",
             "hostType": "APP",
             "sortNudge": 1,
@@ -88,10 +88,10 @@
         },
         {
             "id": "AtlasAdmA",
-            "name": "AtlasA Adm",
+            "name": "Atlas",
             "ip": "10.10.6.100",
             "hostType": "ADMIN",
-            "sortNudge": 4,
+            "sortNudge": 8,
             "displayOptions": {
                 "backgroundColor": "#1985A1",
                 "fontColor": "#ffffff"
@@ -99,7 +99,7 @@
         },
         {
             "id": "AtlasAppA",
-            "name": "AtlasA App",
+            "name": "Atlas",
             "ip": "10.10.6.103",
             "hostType": "APP",
             "sortNudge": 4,
@@ -122,15 +122,25 @@
         },
         {
             "id": "MiniBeastAdm",
-            "name": "MiniBeast (Dbg)",
+            "name": "MiniBeast",
             "ip": "10.10.7.100",
             "hostType": "ADMIN",
             "sortNudge": 5,
             "displayOptions": {
                 "backgroundColor": "#ff0073",
                 "fontColor": "#ffffff"
-            },
-            "description": "EVL logging level is set to debug"
+            }
+        },
+        {
+            "id": "MiniBeastAppA",
+            "name": "MiniBeast",
+            "ip": "10.10.7.103",
+            "hostType": "APP",
+            "sortNudge": 2,
+            "displayOptions": {
+                "backgroundColor": "#ff0073",
+                "fontColor": "#ffffff"
+            }
         },
         {
             "id": "SierraAdm",
@@ -196,6 +206,12 @@
         "timeSpacing": 1000,
         "maxTimeGap": 0.02,
         "minLabelTimeGap": 0.007,
-        "timeUnit": "secondsSinceStart"
+        "timeUnit": "secondsSinceStart",
+        "ackThresholdFast": 0.001,
+        "ackThresholdSlow": 0.002,
+        "ackThresholdSlowColor": "#d45500",
+        "ackThresholdVerySlow": 0.010,
+        "ackThresholdVerySlowColor": "#ff2a2a"
+
     }
 }

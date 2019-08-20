@@ -16,8 +16,8 @@ Note that the SVG events currently have a `onclick` action that calls a function
 ## Limitations
 
 - Written quickly and for a purpose, so some aspects (like having a template) do not generalise well
-- Written for my current company, so we search for company specific `events` in the packages, so not generalisable
-- Is not based on any SVG library or anything, it pretty much just uses string manipulation to build an SVG file (the code doesn't know any SVG semantics, so it wouldn't be easy to change any of the shapes or make very different diagrams.)
+- Contains Solacom specific 'objects', searches for I3 events, _etc_. - not generalisable
+- Is not based on any SVG library or anything, it pretty much just uses string manipulation to build an SVG file (the code doesn't know any SVG semantics, so it wouldn't be easy to change any of the shapes or make very different diagrams.  There has been a little work to change this though)
 
 ## Setup
 
@@ -31,6 +31,17 @@ The values in the `settings` block are defined as:
 - `maxTimeGap`: The maximum allowable space (in seconds) between two events.  Subsequent events with a larger spacing than this will have their spacing collapsed to this value.  The goal of this is to have high resolution time lines without gigantic empty vertical gaps.
 - `minLabelTimeGap`: The minimum amount of time between two events for a time label to appear.  The goal of this is to remove overlapping time lables.  _e.g._ If events `A` and `B` occur within 0.005 s, do not show a time label for event `B`
 - `timeUnit`: Display style of the time label, only supported value currently is `secondsSinceStart`
+
+### Install
+
+All installations are encouraged to be done in a Python3 virtual enviroment.
+
+#### Install for source
+
+Clone the repo, and in the base directory:
+```sh
+python setup.py install
+````
 
 ## Run
 
@@ -66,3 +77,8 @@ generateSequenceDiag                    \
 # Notes
 
 This repo includes some setup config files, data, and README files for particular cases.  These were included as an example of steps taken to diagnose issues (that and I'm not sure where else to save them. :) )
+
+# Developer Notes
+
+- `tspan` objects have been converted into a class as a first step towards converting most/all of the tags into objects.  Once this transformation is complete, the code might be clean enough to leverage a proper SVG package.
+- The SvgObject hierarchy needs to be refactored a little now that a `tspan` class exists.  Types such as Events, Hosts, _etc_ should be in their own library, separate from classes such as `tspan`.

@@ -119,6 +119,142 @@ class SvgObject(object):
         """ Method to process some values after getting inputs but before exporting SVG """
         pass
 
+class SvgType(Enum):
+    """ ENUM output type (plain SVG or inkscape) """
+
+    PLAIN     = 1
+    INKSCAPE  = 2
+
+class Tspan(SvgObject):
+    """ A class that actually maps to a SVG tag - likely should have done this a while ago.  This object builds a <tspan> tag.
+
+    This class might be temporary though, if I can make use of it, I can probably upgrade to an actual SVG library. (just right now all the code is too far away from that.)
+    """
+
+    def __init__(self, value: str='', settings=None):
+        self.id = None
+        self._position = None
+        self._sodipodi = {}
+        self._inkscape = {}
+        self._style = {}
+        self.value = value
+        self.on_click = None
+
+        self.settings = settings
+        if settings:
+            self.type = settings.svg_type
+        else:
+            self.type = SvgType.PLAIN
+
+    @property
+    def x(self):
+        if self._position is not None:
+            return self._position['x']
+        return None
+    @x.setter
+    def x(self, val):
+        if self._position is None:
+            self._position={'x': val, 'y': 0}
+        else:
+            self._position['x'] = val
+    @property
+    def y(self):
+        if self._position is not None:
+            return self._position['y']
+        return None
+    @x.setter
+    def y(self, val):
+        if self._position is None:
+            self._position={'x': 0, 'y': val}
+        else:
+            self._position['y'] = val
+    @property
+    def position(self):
+        if self._position is not None:
+            return self._position
+        return None
+    @position.setter
+    def position(self, val):
+        self._position={'x': val[0], 'y': val[1]}
+
+    @property
+    def role(self):
+        if 'role' in self._sodipodi:
+            return self._sodipodi['role']
+        else:
+            return None
+    @role.setter
+    def role(self, val):
+        self._sodipodi['role'] = val
+
+    @property
+    def font_color(self):
+        if 'fill' in self._style:
+            return self._style['fill']
+        else:
+            return None
+    @font_color.setter
+    def font_color(self, val):
+        self._style['fill'] = val
+
+    @property
+    def font_size(self):
+        if 'font-size' in self._style:
+            return self._style['font-size']
+        else:
+            return None
+    @font_size.setter
+    def font_size(self, val):
+        self._style['font-size'] = val
+
+    @property
+    def text_align(self):
+        if 'text-align' in self._style:
+            return self._style['text-align']
+        else:
+            return None
+    @text_align.setter
+    def text_align(self, val):
+        self._style['text-align'] = val
+
+    @property
+    def text_anchor(self):
+        if 'text-anchor' in self._style:
+            return self._style['text-anchor']
+        else:
+            return None
+    @text_anchor.setter
+    def text_anchor(self, val):
+        self._style['text-anchor'] = val
+
+    def to_svg(self):
+        attrs={}
+        if self._position:
+            attrs['x'] = self._position['x']
+            attrs['y'] = self._position['y']
+
+        if SvgType.INKSCAPE == self.type:
+            for k,v in self._sodipodi.items():
+                attrs['sodipodi:%s'%k] = v
+            for k,v in self._inkscape.items():
+                attrs['inkscape:%s'%k] = v
+
+        if len(self._style):
+            parts=[]
+            for k,v in self._style.items():
+                parts.append('%s:%s'%(k,v))
+            attrs['style'] = ';'.join(parts)
+
+        if self.on_click: attrs['onclick'] = str(self.on_click)
+        if self.id:       attrs['id']      = str(self.id)
+
+        s = '<tspan'
+        if len(attrs):
+            s += ' %s'%' '.join(['%s="%s"'%(k,v) for k,v in attrs.items()])
+        s += '>%s</tspan>'%self.value
+
+        return s
+
 class HostType(Enum):
     """ ENUM to distinguish host type """
 
@@ -149,7 +285,7 @@ class HostType(Enum):
 class Host(SvgObject):
     """ Host (App, Admin, etc) system """
 
-    def __init__(self, id: str, name: str, ip: str, host_type: HostType, sort_nudge: int=100, display_options: DisplayOptions=None, description: str=None):
+    def __init__(self, id: str, name: str, ip: str, host_type: HostType, sort_nudge: int=100, display_options: DisplayOptions=None, description: str=None, settings=None):
         super(Host, self).__init__()
         self.id          = id
         self.name        = name
@@ -157,6 +293,7 @@ class Host(SvgObject):
         self.sort_nudge  = sort_nudge
         self.host_type   = host_type
         self.description = description
+        self.settings    = settings
 
         self.display_options.width  = 40
         self.display_options.height = 15
@@ -196,7 +333,7 @@ class Host(SvgObject):
                 return h
             elif h.name.lower() == name_or_ip.lower():
                 return h
-            elif h.name.lower() == name_or_ip.lower():
+            elif h.ip.lower() == name_or_ip.lower():
                 return h
 
         return None
@@ -210,9 +347,10 @@ class Host(SvgObject):
     def compile(self, settings):
         super().compile()
 
+        self.settings=settings
         self.display_options.abs_center = self.display_options.x + (self.display_options.width/2.0)
         if self.last_event:
-            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings['timeSpacing'])  + self.display_options.height
+            self.display_options.lifeline_length = int(self.last_event.dt.total_seconds() * settings.time_spacing)  + self.display_options.height
 
     def to_svg(self):
         """ Serialize to an XML block """
@@ -241,6 +379,22 @@ class Host(SvgObject):
             description_action=' onclick="show_host_info(\'{description}\')"'.format(description=escape(self.description))
 
 
+        host_name = Tspan(self.name, settings=self.settings)
+        host_name.position = (self.display_options.width/2, y_t)
+        host_name.id = 'host-{host}-label-name'.format(host=self.id.lower())
+        host_name.font_size = '4.3px'
+        host_name.font_color = self.display_options.font_color
+        host_name.text_anchor = 'middle'
+        host_name.role = 'line'
+
+        host_ip = Tspan(self.ip, settings=self.settings)
+        host_ip.position = (host_name.x, y_t2)
+        host_ip.id = 'host-{host}-label-ip'.format(host=self.id.lower())
+        host_ip.font_size = '4.2px'
+        host_ip.font_color = self.display_options.font_color
+        host_ip.text_anchor = 'middle'
+        host_ip.role = 'line'
+
         svg = '''<g
        transform="translate({x_g},{y_g})"
        id="host-{host}">
@@ -263,32 +417,19 @@ class Host(SvgObject):
          style="{text_style}"
          x="{x_t}"
          y="{y_t}"
-         id="host-{host}-label"><tspan
-           sodipodi:role="line"
-           x="{x_t}"
-           y="{y_t}"
-           style="{tspan_style}"
-           id="host-{host}-label-name">{host_name}</tspan><tspan
-           sodipodi:role="line"
-           x="{x_t}"
-           y="{y_t2}"
-           style="text-align:center;text-anchor:middle;stroke-width:0.26px"
-           id="host-{host}-label-ip">{ip}</tspan></text>
+         id="host-{host}-label">{host_name}{ip}</text>
     </g>'''.format(
             host=self.id.lower(),
-            host_name=self.name,
-            ip=self.ip,
+            host_name=host_name.to_svg(),
+            ip=host_ip.to_svg(),
             width=self.display_options.width,
             rect_style=rect_style,
             description_action=description_action,
             height=self.display_options.height,
             text_style=self.display_options.text_style(),
-            tspan_style=self.display_options.tspan_style(),
-            fontSize=self.display_options.fontSize,
-            fontColor=self.display_options.fontColor,
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_r=0, y_r=0,
-            x_t=self.display_options.width/2, y_t=y_t, y_t2=y_t2,
+            x_t=self.display_options.width/2, y_t=y_t,
             x_l=self.display_options.width/2, y_l=self.display_options.height,
             lifeline_length=self.display_options.lifeline_length
         )
@@ -322,6 +463,14 @@ class EventType(object):
     def __repr__(self):
         return '%s(%s)'%(self.name, self.display_options.color)
 
+class EventAckSpeed(Enum):
+    """ ENUM for how we consider how fast an Event is """
+
+    FAST      = 1
+    NORMAL    = 2
+    SLOW      = 3
+    VERY_SLOW = 4
+
 class Event(SvgObject):
     """ Object representing an event (StartCall, EndCall, etc.) with enough
     data to include in a timing diagram """
@@ -332,12 +481,16 @@ class Event(SvgObject):
         src: Host,
         dst: Host,
         event_type: EventType,
+        settings: None,
         time_label=None,
         frame_id: int=None,
         ack_time: int=None,
         ack_frame_id: int=None
     ):
         super().__init__()
+
+        """ Settings object """
+        self.settings = settings
 
         """ Time of the event """
         self.time         = time
@@ -361,7 +514,10 @@ class Event(SvgObject):
         """ Frame ID of the ACK message """
         self.ack_frame_id = int(ack_frame_id) if ack_frame_id is not None else None
 
-        """ Time it took to receive the ACK """
+        """ The "speed type" we consider the event to have had, set when ack_time is set """
+        self.event_ack_speed = EventAckSpeed.NORMAL
+
+        """ Time it took to receive the ACK (s) """
         self.ack_time     = float(ack_time) if ack_time is not None else None
 
         """ Pointer to previous event (set in sort_and_process) """
@@ -370,14 +526,28 @@ class Event(SvgObject):
         """ Pointer to next previous event (set in sort_and_process) """
         self.next = None
 
-        """ Settings object """
-        self.settings = None
-
     def __str__(self):
         return '%s: %s->%s %s'%(self.time_label, self.src, self.dst, self.event_type)
 
     def __repr__(self):
         return '%s: %s->%s %s'%(self.time, self.src, self.dst, self.event_type)
+
+    @property
+    def ack_time(self):
+        return self._ack_time
+
+    @ack_time.setter
+    def ack_time(self, value):
+        self._ack_time = float(value)
+        if self.settings:
+            if self.ack_time > self.settings.ack_threshold_very_slow:
+                self.event_ack_speed = EventAckSpeed.VERY_SLOW
+            elif self.ack_time > self.settings.ack_threshold_slow:
+                self.event_ack_speed = EventAckSpeed.SLOW
+            elif self.ack_time < self.settings.ack_threshold_fast:
+                self.event_ack_speed = EventAckSpeed.FAST
+            else:
+                self.event_ack_speed = EventAckSpeed.NORMAL
 
     @staticmethod
     def sort_and_process(events, settings):
@@ -393,15 +563,15 @@ class Event(SvgObject):
 
             e.dt = e.time - events[0].time
 
-            if settings['timeUnit'] == 'secondsSinceStart':
+            if settings.time_unit == 'secondsSinceStart':
                 e.time_label = '%4.3f'%e.dt.total_seconds()
 
         if len(events) < 2:
             return
 
         # Make sure there are no huge gaps in the times.  If there are, reduce them
-        if 'maxTimeGap' in settings and float(settings['maxTimeGap']) > 0:
-            mdt = datetime.timedelta(seconds=settings['maxTimeGap'])
+        if float(settings.max_time_gap) > 0:
+            mdt = datetime.timedelta(seconds=settings.max_time_gap)
             for i,e in enumerate(events):
                 if i==0: continue
                 dt = events[i].time - events[i-1].time
@@ -413,6 +583,8 @@ class Event(SvgObject):
     def to_svg(self):
         """ Serialize to an XML block """
 
+        id_prefix = 'time-%s'%re.sub('\W', '', str(self.time))
+
         a_len = self.dst.display_options.abs_center - self.src.display_options.abs_center
         if self.dst.display_options.abs_center < self.src.display_options.abs_center:
             a_len = -1 * a_len
@@ -423,9 +595,9 @@ class Event(SvgObject):
         # Position the label randomely a little
         label_pos = a_len/2.0 + random.randint(int(-1*a_len/4), int(a_len/4))
 
-        event_label = self.event_type.name
-        if self.ack_time is not None:
-            event_label += ' (%0.0f ms)'%self.ack_time
+        time_label_tspan = Tspan(self.time_label)
+        time_label_tspan.position = (0,0)
+        time_label_tspan.id = '{id}-time-label-tspan'.format(id=id_prefix)
 
         x_t = 0
         time_text_obj = '''<text
@@ -433,36 +605,71 @@ class Event(SvgObject):
        x="{x_t}"
        y="{y_t}"
        style="{text_style}"
-       xml:space="preserve"><tspan
-         style="{tspan_style}"
-         x="0"
-         y="0"
-         id="{id}-time-label-tspan"
-         sodipodi:role="line">{t}</tspan></text>'''.format(
-            id='time-%s'%re.sub('\W', '', str(self.time)),
+       xml:space="preserve">{t}</text>'''.format(
+            id='%s-text'%id_prefix,
             x_t=x_t, y_t=0,
             text_style=self.event_type.display_options.text_style(),
-            tspan_style=self.event_type.display_options.text_style(),
-            t=self.time_label,
+            t=time_label_tspan.to_svg(),
         )
 
         if self.prev:
             dt = self.time - self.prev.time
-            if dt < datetime.timedelta(seconds=self.settings['minLabelTimeGap']):
+            if dt < datetime.timedelta(seconds=self.settings.min_label_time_gap):
                 time_text_obj=''
+
+
+        def arrow_id(e):
+            """ Select the proper arrow ID, these are defined in the template """
+            if e.event_ack_speed == EventAckSpeed.VERY_SLOW:
+                return 'ArrowRightVerySlow'
+            elif e.event_ack_speed == EventAckSpeed.SLOW:
+                return 'ArrowRightSlow'
+            else:
+                return 'ArrowRightNormal'
+
+
+        event_label = self.event_type.name
+        if type(self.ack_time) is float and EventAckSpeed.FAST != self.event_ack_speed:
+            event_label += ' ('
+
+            if self.ack_time > 1:
+                unit = 's'
+                val = '%0.1f %s'%(self.ack_time, unit)
+            else:
+                unit = 'ms'
+                val = '%0.0f %s'%(self.ack_time*1e3, unit)
+
+            if self.event_ack_speed != EventAckSpeed.NORMAL:
+                event_label_ack_tspan = Tspan(val)
+                event_label_ack_tspan.id = '%s-label-tspan-ack_time'%id_prefix
+                if EventAckSpeed.VERY_SLOW == self.event_ack_speed:
+                    event_label_ack_tspan.font_color = self.settings.ack_threshold_very_slow_color
+                else:
+                    event_label_ack_tspan.font_color = self.settings.ack_threshold_slow_color
+                event_label += event_label_ack_tspan.to_svg()
+            else:
+                event_label += '%s'%(val)
+            event_label += ')'
+
 
         def inject_capture_info(e):
             """ Tiny lambda to include some additional info about the event in
             the SVG.  This is done this way because I am still unsure of a good
             way to do this, so a lambda gives me flexibility. """
 
-            return '''onclick="show_capture_info({{'time': new Date('{time}'), 'eventType': '{event_type}', 'frameId': {frame_id}, 'ackFrameId': {ack_frame_id}, 'ackTime': {ack_time}}})"'''.format(
+            return '''show_capture_info({{'time': new Date('{time}'), 'eventType': '{event_type}', 'frameId': {frame_id}, 'ackFrameId': {ack_frame_id}, 'ackTime': {ack_time}}})'''.format(
                     time=e.time,
                     event_type=e.event_type.name,
                     ack_time=e.ack_time,
                     frame_id=e.frame_id,
                     ack_frame_id=e.ack_frame_id,
                 )
+
+        event_label_tspan = Tspan('%s'%event_label)
+        event_label_tspan.id = '{id}-label-tspan'.format(id=id_prefix)
+        event_label_tspan.font_size = '2.5px'
+        event_label_tspan.font_color = self.event_type.display_options.color
+        event_label_tspan.on_click = inject_capture_info(self)
 
         svg = '''<g
      id="{id}-event-group"
@@ -474,29 +681,23 @@ class Event(SvgObject):
          inkscape:connector-curvature="0"
          id="{id}-arrow"
          d="m {x_a},{y_a} h {a_len}"
-         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Lend)" />
+         style="fill:none;stroke:{event_color};stroke-width:0.40;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#{arrow_id})" />
       <text
          id="{id}-label"
          x="{x_l}"
          y="{y_l}"
          style="{text_style}"
-         xml:space="preserve"><tspan
-           style="{tspan_style}"
-           x="{x_l}"
-           y="{y_l}"
-           id="{id}-label-tspan" {show_capture_info}>{event_label}</tspan></text>
+         xml:space="preserve">{event_label}</text>
     </g>'''.format(
             x_g=self.display_options.x, y_g=self.display_options.y,
             x_e=self.src.display_options.x - self.display_options.x + (self.src.display_options.width/2.0), y_e=0,
             x_a=0, y_a=0, a_len=a_len,
             x_l=label_pos, y_l=0,
-            time=self.time, show_capture_info=inject_capture_info(self),
-            id='time-%s'%re.sub('\W', '', str(self.time)),
+            id=id_prefix,
+            arrow_id=arrow_id(self),
             text_style=self.event_type.display_options.text_style(),
-            tspan_style=self.event_type.display_options.text_style(),
             event_color=self.event_type.display_options.color,
-            event_label=event_label,
-            time_text_obj=time_text_obj
+            event_label=event_label_tspan.to_svg(),
         )
         if time_text_obj:
             svg += '\n    ' + time_text_obj + '\n'
@@ -521,7 +722,7 @@ class Diagram(object):
         # First we have to position everything
         svg_hosts = ''
         for i, h in enumerate(self.hosts):
-            h.display_options.x = self.settings['hostSpacing']*i + self.settings['timeMarginLeft']
+            h.display_options.x = self.settings.host_spacing*i + self.settings.time_margin_left
             h.display_options.y = 0
             h.last_event = next((e for e in reversed(self.events) if e.src==h or e.dst==h), None)
             h.compile(settings=self.settings)
@@ -529,13 +730,13 @@ class Diagram(object):
 
         events_svg = ''
         for i, e in enumerate(self.events):
-            e.display_options.x = self.settings['timeMarginLeft']
-            e.display_options.y = int(e.dt.total_seconds() * self.settings['timeSpacing'])
+            e.display_options.x = self.settings.time_margin_left
+            e.display_options.y = int(e.dt.total_seconds() * self.settings.time_spacing)
             e.compile()
             events_svg = events_svg + e.to_svg()
 
-        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings['timeSpacing']) + 20
-        page_width = len(self.hosts)*self.settings['hostSpacing'] + self.settings['timeMarginLeft'] + self.hosts[len(self.hosts)-1].display_options.width
+        page_height = int(self.events[len(self.events)-1].dt.total_seconds() * self.settings.time_spacing) + 40
+        page_width = len(self.hosts)*self.settings.host_spacing + self.settings.time_margin_left + self.hosts[len(self.hosts)-1].display_options.width
 
         outp = re.sub('{{hosts}}',       svg_hosts, self.template)
         outp = re.sub('{{time-left}}',   str(0), outp)
