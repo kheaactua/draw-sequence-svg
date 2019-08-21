@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import dsd.loaddata as ld
-from dsd.svgobjs import Diagram
+from dsd.solaobjs import Diagram
 
 def main():
     """ Loads all the data and prepares the SVG """
@@ -46,13 +46,20 @@ def main():
         help='If provided, generate an SVG with the discovered data'
     )
     parser.add_argument(
-        '-t', '--template',
-        metavar='TEMPLATE_FILE',
-        dest='template',
+        '-f', '--from-frame',
+        dest='from_frame',
         action='store',
-        required=False,
-        type=ld.argparse_file_exists,
-        help='Template SVG file, required if generating an SVG'
+        default=None,
+        type=int,
+        help='Start frame'
+    )
+    parser.add_argument(
+        '-t', '--to-frame',
+        dest='to_frame',
+        action='store',
+        default=None,
+        type=int,
+        help='To frame'
     )
 
     args = parser.parse_args()
@@ -74,6 +81,8 @@ def main():
         hosts=hosts,
         event_type_names=args.events,
         event_types=event_types,
+        from_frame=args.from_frame,
+        to_frame=args.to_frame,
         settings=settings,
         verbose=args.verbose
     )
@@ -92,8 +101,7 @@ def main():
         ld.write_events(filename=args.events_outfile, events=events)
 
     if args.svg_outfile:
-        template, info = ld.read_template(args.template)
-        diag = Diagram(template=template, hosts=hosts, events=events, doc_info=info, settings=settings)
+        diag = Diagram(hosts=hosts, events=events, settings=settings)
         contents = diag.generate()
 
         with open(args.svg_outfile, 'w') as f: f.write(contents)

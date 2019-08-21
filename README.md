@@ -52,7 +52,6 @@ queryCaptureLogs                                        \
    --config samples/sample1/config.json                 \
    --capture-file data/LoggingService_processing.pcapng \
    --hosts App2A Admin2A MIS2A                          \
-   --template template.svg                              \
    --write-events /tmp/events.csv                       \
    --output-svg   diag.svg
 ```
@@ -70,7 +69,6 @@ queryCaptureLogs                                        \
 generateSequenceDiag                    \
    --config samples/sample1/config.json \
    --input /tmp/events.csv              \
-   --template template.svg              \
    --output   diag.svg
 ```
 
