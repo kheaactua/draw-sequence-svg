@@ -11,7 +11,8 @@ import argparse
 import datetime
 import pyshark
 
-import dsd.svgobjs as so
+import dsd.solaobjs as so
+import dsd.svgobjs as svg
 
 class Settings(object):
     """ Config object to hold various settings """
@@ -37,7 +38,7 @@ class Settings(object):
             'ackThresholdVerySlow': 0.010, # s
 
             # SVG output type
-            'svg_type':         so.SvgType.PLAIN
+            'svg_type':         svg.SvgType.PLAIN
         }
 
         for k,v in defaults.items():
@@ -66,7 +67,7 @@ def read_config(filename):
 
     return hosts, event_types, settings
 
-def read_events(filename, hosts, event_types, settings, verbose=False):
+def read_events(filename, hosts, event_types, settings, from_frame=None, to_frame=None, verbose=False):
     csv.register_dialect('EventType', delimiter = ',', skipinitialspace=True)
 
     if verbose:
@@ -100,13 +101,21 @@ def read_events(filename, hosts, event_types, settings, verbose=False):
 
             frame_id = None
             if len(row) > 4:
-                frame_id = row[5]
+                frame_id = int(row[5])
 
             ack_frame_id = None
             if len(row) > 5:
                 ack_frame_id = row[6]
-                if not len(ack_frame_id):
+                if len(ack_frame_id):
+                    ack_frame_id = int(ack_frame_id)
+                else:
                     ack_frame_id = None
+
+            if from_frame and frame_id < from_frame:
+                continue
+
+            if to_frame and ack_frame_id > to_frame:
+                break
 
             e = so.Event(
                 settings     = settings,
@@ -141,30 +150,6 @@ def write_events(filename, events):
                 'frameId':    e.frame_id,
                 'ackFrameId': e.ack_frame_id,
             })
-
-def read_template(filename):
-    """ Import our template, and read some properties from it """
-    with open(filename, 'r') as f: contents=f.read()
-
-    # # Determine some properties, get the svg tag
-    # tag = re.search('<svg.*?>', contents, re.MULTILINE|re.S);
-    # props = re.findall(r'\b(?P<attr>\w+)=\"(?P<val>.*?)\"', tag.group(0), re.MULTILINE)
-    # info = {}
-    # for m in props:
-    #     if 'width' == m[0]:
-    #         units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-    #         info['width'] = float(units.group('val'))
-    #         info['unit']  = units.group('unit')
-    #     elif 'height' == m[0]:
-    #         units=re.match(r'(?P<val>\d+.?\d+)(?P<unit>\w+)', m[1])
-    #         if units:
-    #             info['height'] = float(units.group('val'))
-
-    # We used to use info, but there's no need for it any more it seems.
-    # Leaving the commented code just in case it is required in the near future
-    info={}
-
-    return contents, info
 
 def filter_hosts(hosts, events):
     """ Remove hosts that aren't involved in any events """
@@ -285,7 +270,7 @@ def generate_display_filter(hosts, event_type_names, line_breaks=True):
 
     return outp
 
-def query_logs(capture_filename, hosts, event_type_names, event_types, settings={}, verbose=False):
+def query_logs(capture_filename, hosts, event_type_names, event_types, from_frame: int=None, to_frame: int=None, settings: Settings=None, verbose=False):
     """ Query a capture file for events """
 
     msgs_df = generate_display_filter(
@@ -326,6 +311,13 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             sniff_start_time = p.sniff_time
             is_first=False
 
+        if from_frame and int(p.number) < from_frame:
+            continue
+
+        if to_frame and int(p.number) > to_frame + 20:
+            # 20 is an arbitrary number provided to allow time to find the ACK message
+            break
+
         if 'xml' in p and p['http'].request_method=='POST':
             # Look for event type
 
@@ -340,6 +332,7 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             events.append(so.Event(
                 time=p.sniff_time,
                 time_label='%3.2f'%(dt.microseconds/1000),
+                settings=settings,
                 src=src,
                 dst=dst,
                 event_type=et,
@@ -354,6 +347,10 @@ def query_logs(capture_filename, hosts, event_type_names, event_types, settings=
             if e:
                 e.ack_time = float(p['http'].time)
                 e.ack_frame_id = int(p.number)
+
+                if to_frame and e.ack_frame_id > to_frame:
+                    break
+
             else:
                 if verbose:
                     print("Could not find event for request_frame=%d"%request_frame, file=sys.stderr)

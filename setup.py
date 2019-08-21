@@ -12,8 +12,6 @@ setup(
     packages=find_packages(),
     install_requires=['aenum', 'pyshark'],
     python_requires='>=3',
-    package_data={'': ['data/template.svg']},
-    include_package_data=True,
     entry_points = {
       'console_scripts': [
           'generateSequenceDiag = dsd.generateSequenceDiag:main',
